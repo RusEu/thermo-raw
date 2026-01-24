@@ -1,3 +1,17 @@
 # Data folders
 data/
 **/data/
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+dist/
+build/
+venv/
+.venv/
+.env

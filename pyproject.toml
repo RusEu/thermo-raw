@@ -1,0 +1,23 @@
+[project]
+name = "thermo-charts"
+version = "0.1.0"
+description = "ThermoFisher data analytics dashboard"
+requires-python = ">=3.10"
+dependencies = [
+    "bokeh>=3.3.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pyinstaller>=6.0.0",
+]
+
+[project.scripts]
+thermo-charts = "src.app:main"
+
+[tool.uv]
+dev-dependencies = [
+    "pyinstaller>=6.0.0",
+]
