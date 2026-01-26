@@ -1,0 +1,25 @@
+[project]
+name = "thermo-stats"
+version = "0.1.0"
+description = "ThermoFisher mzML analytics dashboard"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "bokeh>=3.3.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "pyteomics>=4.6.0",
+    "lxml>=5.0.0",
+    "python-multipart>=0.0.6",
+]
+
+[project.scripts]
+thermo-stats = "thermo_stats.main:cli"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/thermo_stats"]

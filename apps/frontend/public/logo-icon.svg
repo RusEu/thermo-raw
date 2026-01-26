@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="peakGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="50%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:0.2"/>
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:0"/>
+    </linearGradient>
+    <linearGradient id="thermoGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="50%" style="stop-color:#ef4444"/>
+      <stop offset="100%" style="stop-color:#ec4899"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="40" height="40" rx="10" fill="url(#bgGrad)" stroke="#cbd5e1" stroke-width="1"/>
+
+  <!-- Subtle grid lines -->
+  <line x1="5" y1="32" x2="35" y2="32" stroke="#94a3b8" stroke-width="0.5" opacity="0.4"/>
+  <line x1="5" y1="26" x2="35" y2="26" stroke="#94a3b8" stroke-width="0.5" opacity="0.25"/>
+  <line x1="5" y1="20" x2="35" y2="20" stroke="#94a3b8" stroke-width="0.5" opacity="0.15"/>
+
+  <!-- Glow under peaks -->
+  <path d="M5 32 L8 28 L11 30 L15 12 L19 25 L23 18 L27 22 L31 26 L35 29 L35 32 Z" fill="url(#glowGrad)"/>
+
+  <!-- Chromatogram line -->
+  <path
+    d="M5 30 Q8 28 9 29 T13 14 Q14 12 15 12 T17 20 Q19 25 20 25 T23 18 Q25 15 27 22 T31 26 Q33 28 35 29"
+    stroke="url(#peakGrad)"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+    filter="url(#glow)"
+  />
+
+  <!-- Peak dots -->
+  <circle cx="15" cy="12" r="2" fill="#8b5cf6" filter="url(#glow)"/>
+  <circle cx="23" cy="18" r="1.5" fill="#3b82f6"/>
+
+  <!-- Thermometer indicator -->
+  <rect x="32" y="4" width="4" height="12" rx="2" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.5"/>
+  <rect x="33" y="8" width="2" height="7" rx="1" fill="url(#thermoGrad)"/>
+  <circle cx="34" cy="14" r="2.5" fill="url(#thermoGrad)"/>
+
+  <!-- Temperature marks -->
+  <line x1="31" y1="6" x2="32" y2="6" stroke="#94a3b8" stroke-width="0.5"/>
+  <line x1="31" y1="9" x2="32" y2="9" stroke="#94a3b8" stroke-width="0.5"/>
+  <line x1="31" y1="12" x2="32" y2="12" stroke="#94a3b8" stroke-width="0.5"/>
+</svg>

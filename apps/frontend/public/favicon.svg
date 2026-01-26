@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f8fafc"/>
+      <stop offset="100%" style="stop-color:#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="peakGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#06b6d4"/>
+      <stop offset="50%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#8b5cf6"/>
+    </linearGradient>
+    <linearGradient id="thermoGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="8" fill="url(#bgGrad)" stroke="#cbd5e1" stroke-width="0.5"/>
+
+  <!-- Chromatogram line -->
+  <path
+    d="M4 24 Q6 22 7 23 T11 10 Q12 8 12 8 T14 16 Q16 20 17 20 T20 14 Q22 11 24 17 T28 22"
+    stroke="url(#peakGrad)"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <!-- Peak dot -->
+  <circle cx="12" cy="8" r="2" fill="#8b5cf6"/>
+
+  <!-- Thermometer -->
+  <circle cx="27" cy="8" r="3" fill="url(#thermoGrad)"/>
+</svg>

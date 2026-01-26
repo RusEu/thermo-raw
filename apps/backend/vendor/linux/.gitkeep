@@ -1,0 +1,3 @@
+# Place ThermoRawFileParser here for Linux builds
+# Download from: https://github.com/compomics/ThermoRawFileParser/releases
+# Note: Linux may require libicu to be installed

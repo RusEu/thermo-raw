@@ -1,0 +1,3 @@
+# Place ThermoRawFileParser here for macOS builds
+# Download from: https://github.com/compomics/ThermoRawFileParser/releases
+# Note: macOS builds use the .NET mono runtime version
