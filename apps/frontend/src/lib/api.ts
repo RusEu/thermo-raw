@@ -164,24 +164,29 @@ export const api = {
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
 
-    // Get filename from Content-Disposition header or use default
-    const disposition = res.headers.get('Content-Disposition')
-    let filename = `snr_results_${fileId.replace('.mzML', '')}.csv`
-    if (disposition) {
-      const match = disposition.match(/filename=(.+)/)
-      if (match) filename = match[1]
-    }
+    const filename = `snr_results_${fileId.replace('.mzML', '')}.csv`
+    const csvContent = await res.text()
 
-    // Get the CSV content and trigger download
-    const blob = await res.blob()
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+    // Check if running in pywebview (native app) with save_file API
+    const pywebview = (window as unknown as { pywebview?: { api?: { save_file?: (content: string, filename: string) => Promise<{ success: boolean; error?: string }> } } }).pywebview
+    if (pywebview?.api?.save_file) {
+      // Use native Save As dialog
+      const result = await pywebview.api.save_file(csvContent, filename)
+      if (!result.success && result.error !== 'Save cancelled') {
+        throw new Error(result.error || 'Failed to save file')
+      }
+    } else {
+      // Fallback: browser blob download
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    }
   },
 
   // Bokeh plot endpoints

@@ -163,6 +163,50 @@ LOADING_HTML = """
 """
 
 
+class Api:
+    """Python API exposed to JavaScript in pywebview for native OS features."""
+
+    def __init__(self):
+        self._window = None
+
+    def set_window(self, window):
+        """Set the window reference after creation."""
+        self._window = window
+
+    def save_file(self, content: str, default_filename: str) -> dict:
+        """Show native Save As dialog and save content to file.
+
+        Args:
+            content: The file content to save
+            default_filename: Suggested filename for the save dialog
+
+        Returns:
+            dict with 'success' boolean and optional 'error' message
+        """
+        if not self._window:
+            return {"success": False, "error": "Window not initialized"}
+
+        try:
+            import webview
+
+            # Show native file dialog
+            result = self._window.create_file_dialog(
+                webview.SAVE_DIALOG,
+                save_filename=default_filename,
+                file_types=('CSV Files (*.csv)', 'All Files (*.*)'),
+            )
+
+            if result:
+                filepath = result if isinstance(result, str) else result[0]
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(content)
+                return {"success": True}
+            else:
+                return {"success": False, "error": "Save cancelled"}
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
 def cli():
     """CLI entry point.
 
@@ -174,6 +218,9 @@ def cli():
     if is_frozen():
         # Standalone mode: native GUI with pywebview
         import webview
+
+        # Create API instance
+        api = Api()
 
         def on_loaded():
             """Called when webview is ready - start server and load app."""
@@ -194,7 +241,11 @@ def cli():
             width=1400,
             height=900,
             min_size=(800, 600),
+            js_api=api,
         )
+
+        # Set window reference in API
+        api.set_window(window)
 
         # Start the GUI event loop with callback
         webview.start(on_loaded)

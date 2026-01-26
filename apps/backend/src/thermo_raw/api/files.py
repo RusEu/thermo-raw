@@ -205,6 +205,16 @@ def get_precursor_snr(
             ppm_tolerance=ppm,
             rt_window=rt_window,
         )
+
+        # Clean up spectrum_metadata to remove numpy arrays (not JSON serializable)
+        if result.get("spectrum_metadata"):
+            metadata = result["spectrum_metadata"]
+            # Keep only JSON-serializable fields
+            result["spectrum_metadata"] = {
+                k: v for k, v in metadata.items()
+                if k not in ("noise_mz_array", "noise_intensity_array")
+            }
+
         return result
     except HTTPException:
         raise
