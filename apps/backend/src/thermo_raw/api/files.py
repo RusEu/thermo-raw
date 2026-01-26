@@ -197,13 +197,19 @@ def get_precursor_snr(
     Returns:
         Dictionary with snr, signal, noise, apex_rt, actual_mz, etc.
     """
-    service = get_file_service(file_id)
-    return service.get_precursor_snr(
-        target_mz=mz,
-        target_rt=rt,
-        ppm_tolerance=ppm,
-        rt_window=rt_window,
-    )
+    try:
+        service = get_file_service(file_id)
+        result = service.get_precursor_snr(
+            target_mz=mz,
+            target_rt=rt,
+            ppm_tolerance=ppm,
+            rt_window=rt_window,
+        )
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"SNR calculation failed: {str(e)}")
 
 
 class CompoundInput(BaseModel):

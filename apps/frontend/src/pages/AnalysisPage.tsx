@@ -441,7 +441,10 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
             <Card className="border-red-500/50">
               <CardContent className="py-6">
                 <div className="text-center text-red-500">
-                  Failed to calculate SNR. Please check your parameters.
+                  <p className="font-medium">Failed to calculate SNR</p>
+                  <p className="text-sm mt-1 text-red-400">
+                    {snrMutation.error instanceof Error ? snrMutation.error.message : 'Please check your parameters.'}
+                  </p>
                 </div>
               </CardContent>
             </Card>

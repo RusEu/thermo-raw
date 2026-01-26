@@ -32,7 +32,16 @@ export interface FileStats {
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`)
   if (!res.ok) {
-    throw new Error(`API error: ${res.status}`)
+    // Try to extract error detail from response
+    try {
+      const error = await res.json()
+      throw new Error(error.detail || `API error: ${res.status}`)
+    } catch (e) {
+      if (e instanceof Error && e.message !== `API error: ${res.status}`) {
+        throw e
+      }
+      throw new Error(`API error: ${res.status}`)
+    }
   }
   return res.json()
 }
