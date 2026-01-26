@@ -2,6 +2,21 @@
 
 Interactive mass spectrometry data analysis dashboard for Thermo Scientific instruments. Built with FastAPI, React, and Bokeh.
 
+![ThermoRaw Overview](screenshots/overview.png)
+
+<details>
+<summary><b>More Screenshots</b></summary>
+
+| Spectrum Explorer | Heatmap View |
+|:-----------------:|:------------:|
+| ![Explorer](screenshots/explorer.png) | ![Heatmap](screenshots/heatmap.png) |
+
+| Precursor S/N Analysis | Bulk S/N Analysis |
+|:----------------------:|:-----------------:|
+| ![SNR Analysis](screenshots/snr-analysis.png) | ![Bulk SNR](screenshots/bulk-snr.png) |
+
+</details>
+
 ## Quick Start
 
 ### Download
