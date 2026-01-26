@@ -13,14 +13,51 @@ Interactive mass spectrometry data analysis dashboard for Thermo Scientific inst
 | **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.3.1/ThermoRaw-linux-x64.tar.gz) |
 
 > See all releases: [Releases](https://github.com/RusEu/thermo-raw/releases)
+
 ## Features
 
-- **File Upload**: Upload Thermo `.raw` files (auto-converted to mzML) or `.mzML` files directly
-- **Chromatograms**: View TIC (Total Ion Chromatogram) and BPC (Base Peak Chromatogram)
-- **Spectrum Explorer**: Interactive mass spectrum visualization with zoom and pan
-- **Heatmap**: m/z vs retention time intensity heatmap
-- **SNR Analysis**: Signal-to-Noise ratio calculations using Thermo noise data
-- **Precursor Analysis**: Automated peak detection and SNR calculation workflow
+### File Management
+- **Upload & Convert**: Upload Thermo `.raw` files (automatically converted to mzML) or `.mzML` files directly
+- **Drag & Drop**: Simple drag-and-drop file upload interface
+- **File Browser**: Quick switching between multiple loaded files
+
+### Overview Dashboard
+- **File Statistics**: Total scans, MS1/MS2 scan counts, retention time range, m/z range, polarity
+- **TIC Plot**: Total Ion Chromatogram with interactive zoom and pan
+- **BPC Plot**: Base Peak Chromatogram visualization
+- **Quick Stats**: Maximum and mean TIC values at a glance
+
+### Spectrum Explorer
+- **Interactive Chromatogram**: Click anywhere on TIC/BPC to select a retention time
+- **RT Slider**: Fine-tune retention time selection with precision slider
+- **Mass Spectrum View**: Full mass spectrum at selected retention time with zoom capabilities
+- **2D Heatmap**: m/z vs retention time intensity visualization
+- **Intensity Range Control**: Adjustable min/max intensity thresholds for heatmap
+
+### Signal-to-Noise Analysis
+
+#### Single Precursor Analysis
+- **Precursor SNR**: Calculate Signal-to-Noise Ratio for any m/z at a given retention time
+- **PPM Tolerance**: Configurable mass tolerance (default ±5 ppm for Orbitrap)
+- **RT Window**: Adjustable retention time search window for peak detection
+- **Peak Apex Detection**: Automatic detection of chromatographic peak apex
+- **XIC Visualization**: Extracted Ion Chromatogram for the target m/z
+- **Apex Spectrum**: Mass spectrum at the detected peak apex
+
+#### Bulk SNR Analysis
+- **Batch Processing**: Analyze multiple compounds in a single operation
+- **CSV Import**: Upload compound lists (name, m/z, RT) from CSV files
+- **Paste Support**: Directly paste tab or comma-separated compound data
+- **Results Table**: Sortable results with SNR, signal, noise, apex RT, and actual m/z
+- **CSV Export**: Download results as CSV for further analysis
+- **Top Peaks**: View highest intensity peaks with their SNR values
+
+### Technical Features
+- **Thermo Noise Data**: Uses actual instrument noise data when available (mzML converted with `-N` flag)
+- **Binary Caching**: Parsed files are cached for instant subsequent access
+- **Native Desktop App**: Standalone executable with native window (no browser required)
+- **Cross-Platform**: Available for macOS (Apple Silicon), Windows (x64), and Linux (x64)
+- **Dark/Light Theme**: Automatic theme detection with manual override
 
 ## Development
 
