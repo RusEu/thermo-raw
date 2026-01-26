@@ -85,40 +85,6 @@ jobs:
           uv sync --extra gui
           uv pip install pyinstaller
 
-      # Generate app icons from SVG
-      - name: Generate app icons (macOS)
-        if: matrix.platform == 'macos'
-        run: |
-          brew install librsvg imagemagick
-
-          # Create iconset directory
-          mkdir -p apps/backend/ThermoRaw.iconset
-
-          # Generate PNGs at required sizes for macOS iconset
-          for size in 16 32 64 128 256 512; do
-            rsvg-convert -w $size -h $size apps/frontend/public/logo-icon.svg -o apps/backend/ThermoRaw.iconset/icon_${size}x${size}.png
-            rsvg-convert -w $((size*2)) -h $((size*2)) apps/frontend/public/logo-icon.svg -o apps/backend/ThermoRaw.iconset/icon_${size}x${size}@2x.png
-          done
-
-          # Create .icns file
-          iconutil -c icns apps/backend/ThermoRaw.iconset -o apps/backend/icon.icns
-
-          echo "Created icon.icns"
-          ls -la apps/backend/icon.icns
-
-      - name: Generate app icons (Windows)
-        if: matrix.platform == 'windows'
-        shell: pwsh
-        run: |
-          choco install imagemagick -y
-          $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-
-          # Generate multi-resolution ICO
-          magick convert -background none apps/frontend/public/logo-icon.svg -define icon:auto-resize=256,128,64,48,32,16 apps/backend/icon.ico
-
-          Write-Host "Created icon.ico"
-          Get-Item apps/backend/icon.ico
-
       - name: Build with PyInstaller
         working-directory: apps/backend
         shell: bash
@@ -160,6 +126,9 @@ jobs:
         run: |
           # Install NSIS
           choco install nsis -y
+
+          # Add NSIS to PATH
+          $env:Path += ";C:\Program Files (x86)\NSIS"
 
           # Create NSIS script
           @"
