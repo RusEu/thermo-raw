@@ -17,29 +17,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # macOS builds
+          # macOS builds (macos-latest is ARM64, macos-13 was x64 but retired)
           - os: macos-latest
             platform: macos
             arch: arm64
             artifact_name: ThermoCharts-macos-arm64
-            pyinstaller_target: --target-arch arm64
-          - os: macos-15
-            platform: macos
-            arch: x64
-            artifact_name: ThermoCharts-macos-x64
-            pyinstaller_target: ""
           # Windows builds
           - os: windows-latest
             platform: windows
             arch: x64
             artifact_name: ThermoCharts-windows-x64
-            pyinstaller_target: ""
           # Linux builds
           - os: ubuntu-latest
             platform: linux
             arch: x64
             artifact_name: ThermoCharts-linux-x64
-            pyinstaller_target: ""
 
     runs-on: ${{ matrix.os }}
 
@@ -90,7 +82,7 @@ jobs:
         working-directory: apps/backend
         shell: bash
         run: |
-          uv run pyinstaller thermocharts.spec --clean --noconfirm ${{ matrix.pyinstaller_target }}
+          uv run pyinstaller thermocharts.spec --clean --noconfirm
 
       # Package artifacts
       - name: Create release archive (macOS)
@@ -162,7 +154,6 @@ jobs:
           | Platform | Architecture | Download |
           |----------|--------------|----------|
           | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-macos-arm64.zip) |
-          | **macOS** | Intel | [ThermoCharts-macos-x64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-macos-x64.zip) |
           | **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-windows-x64.zip) |
           | **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-linux-x64.tar.gz) |
 
@@ -202,7 +193,6 @@ jobs:
         with:
           files: |
             artifacts/ThermoCharts-macos-arm64/ThermoCharts-macos-arm64.zip
-            artifacts/ThermoCharts-macos-x64/ThermoCharts-macos-x64.zip
             artifacts/ThermoCharts-windows-x64/ThermoCharts-windows-x64.zip
             artifacts/ThermoCharts-linux-x64/ThermoCharts-linux-x64.tar.gz
           generate_release_notes: true
@@ -216,7 +206,6 @@ jobs:
             | Platform | Architecture | File |
             |----------|--------------|------|
             | **macOS** | Apple Silicon (M1/M2/M3) | `ThermoCharts-macos-arm64.zip` |
-            | **macOS** | Intel x64 | `ThermoCharts-macos-x64.zip` |
             | **Windows** | x64 | `ThermoCharts-windows-x64.zip` |
             | **Linux** | x64 | `ThermoCharts-linux-x64.tar.gz` |
 

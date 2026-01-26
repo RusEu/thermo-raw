@@ -9,7 +9,6 @@ Interactive mass spectrometry data analysis dashboard for Thermo Scientific inst
 | Platform | Architecture | Download |
 |----------|--------------|----------|
 | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-macos-arm64.zip) |
-| **macOS** | Intel | [ThermoCharts-macos-x64.zip](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-macos-x64.zip) |
 | **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-windows-x64.zip) |
 | **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-linux-x64.tar.gz) |
 
