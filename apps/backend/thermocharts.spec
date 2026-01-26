@@ -5,26 +5,25 @@ from pathlib import Path
 
 block_cipher = None
 
-# Determine platform-specific ThermoRawFileParser directory
+# ThermoRawFileParser - bundled for all platforms
+# The same .NET assemblies work on all platforms (Windows native, macOS/Linux via mono)
 if sys.platform == 'win32':
     parser_src = 'vendor/windows'
-    parser_name = 'ThermoRawFileParser.exe'
 elif sys.platform == 'darwin':
     parser_src = 'vendor/macos'
-    parser_name = 'ThermoRawFileParser'
 else:
     parser_src = 'vendor/linux'
-    parser_name = 'ThermoRawFileParser'
 
 # Check if parser exists
 parser_path = Path(parser_src)
 parser_datas = []
-if parser_path.exists() and (parser_path / parser_name).exists():
+if parser_path.exists() and (parser_path / 'ThermoRawFileParser.exe').exists():
+    # Bundle entire vendor directory to include all DLLs
     parser_datas = [(parser_src, 'ThermoRawFileParser')]
+    print(f"Including ThermoRawFileParser from {parser_src}")
 else:
-    print(f"WARNING: ThermoRawFileParser not found at {parser_src}/{parser_name}")
+    print(f"WARNING: ThermoRawFileParser not found at {parser_src}/ThermoRawFileParser.exe")
     print("The built application will not be able to convert .raw files.")
-    print(f"Download from: https://github.com/compomics/ThermoRawFileParser/releases")
 
 # Static files (frontend build)
 static_path = Path('src/thermo_stats/static')

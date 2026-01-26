@@ -43,11 +43,20 @@ Data is stored in `~/ThermoCharts/data/`
 
 ## Development
 
-### Prerequisites
+### Quick Start (Docker)
 
-- Python 3.12+
-- Node.js 20+
-- [uv](https://docs.astral.sh/uv/) (Python package manager)
+The easiest way to run locally for development:
+
+```bash
+git clone https://github.com/RusEu/thermo-charts.git
+cd thermo-charts
+docker-compose up
+```
+
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:8000
+
+Docker handles all dependencies including ThermoRawFileParser for `.raw` file conversion.
 
 ### Project Structure
 
@@ -67,7 +76,13 @@ thermo-charts/
 └── docker-compose.yml    # Docker development setup
 ```
 
-### Setup
+### Manual Setup (Without Docker)
+
+Requires:
+- Python 3.12+
+- Node.js 20+
+- [uv](https://docs.astral.sh/uv/) (Python package manager)
+- [Mono](https://www.mono-project.com/) (for `.raw` file conversion on macOS/Linux)
 
 ```bash
 # Clone the repository
@@ -84,15 +99,6 @@ cd apps/frontend
 npm install
 npm run dev
 ```
-
-### Docker Development
-
-```bash
-docker-compose up
-```
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000
 
 ### Building Standalone Executable
 

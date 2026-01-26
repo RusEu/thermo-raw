@@ -34,10 +34,4 @@ apps/backend/build/
 apps/backend/src/thermo_stats/static/*
 !apps/backend/src/thermo_stats/static/.gitkeep
 
-# Vendor binaries (keep .gitkeep and README)
-apps/backend/vendor/windows/*
-!apps/backend/vendor/windows/.gitkeep
-apps/backend/vendor/macos/*
-!apps/backend/vendor/macos/.gitkeep
-apps/backend/vendor/linux/*
-!apps/backend/vendor/linux/.gitkeep
+# Vendor - ThermoRawFileParser binaries are included in the repo

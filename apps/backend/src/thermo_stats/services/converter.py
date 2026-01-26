@@ -35,15 +35,23 @@ def get_parser_path() -> str:
     # In frozen mode, find bundled binary
     if is_frozen():
         base = get_base_path()
-        if sys.platform == 'win32':
-            parser_path = base / "ThermoRawFileParser" / "ThermoRawFileParser.exe"
-        else:
-            # macOS and Linux
-            parser_path = base / "ThermoRawFileParser" / "ThermoRawFileParser"
+        parser_path = base / "ThermoRawFileParser" / "ThermoRawFileParser.exe"
         return str(parser_path)
 
     # Development mode default
     return "/opt/ThermoRawFileParser/ThermoRawFileParser.exe"
+
+
+def get_parser_command(parser_path: str) -> list[str]:
+    """Get the command to run ThermoRawFileParser.
+
+    On Windows, run directly. On macOS/Linux, use mono.
+    """
+    if sys.platform == 'win32':
+        return [parser_path]
+    else:
+        # macOS and Linux need mono to run .NET executables
+        return ["mono", parser_path]
 
 
 def convert_raw_to_mzml(raw_path: Path, output_dir: Path) -> Path:
@@ -71,8 +79,7 @@ def convert_raw_to_mzml(raw_path: Path, output_dir: Path) -> Path:
     # ThermoRawFileParser -i <input.raw> -o <output_dir> -f 2 -N
     # -f 2 = mzML format
     # -N = include noise data for accurate SNR calculations
-    cmd = [
-        parser_path,
+    cmd = get_parser_command(parser_path) + [
         "-i", str(raw_path),
         "-o", str(output_dir),
         "-f", "2",  # mzML format
@@ -94,7 +101,13 @@ def convert_raw_to_mzml(raw_path: Path, output_dir: Path) -> Path:
 
     except subprocess.TimeoutExpired:
         raise ConversionError("Conversion timed out after 10 minutes")
-    except FileNotFoundError:
+    except FileNotFoundError as e:
+        if sys.platform != 'win32' and "mono" in str(e).lower():
+            raise ConversionError(
+                "Mono runtime not found. Install mono to convert .raw files:\n"
+                "  macOS: brew install mono\n"
+                "  Linux: apt install mono-complete"
+            )
         raise ConversionError(
             "ThermoRawFileParser not found. "
             "Ensure ThermoRawFileParser is installed."

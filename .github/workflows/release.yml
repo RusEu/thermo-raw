@@ -11,9 +11,6 @@ on:
         required: true
         default: 'v0.1.0'
 
-env:
-  THERMO_PARSER_VERSION: "1.4.4"
-
 jobs:
   build:
     strategy:
@@ -26,11 +23,11 @@ jobs:
             arch: arm64
             artifact_name: ThermoCharts-macos-arm64
             pyinstaller_target: --target-arch arm64
-          - os: macos-13
+          - os: macos-15
             platform: macos
             arch: x64
             artifact_name: ThermoCharts-macos-x64
-            pyinstaller_target: --target-arch x86_64
+            pyinstaller_target: ""
           # Windows builds
           - os: windows-latest
             platform: windows
@@ -66,27 +63,6 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
-
-      # Download ThermoRawFileParser
-      - name: Download ThermoRawFileParser
-        shell: bash
-        run: |
-          mkdir -p apps/backend/vendor/${{ matrix.platform }}
-          curl -L -o parser.zip "https://github.com/compomics/ThermoRawFileParser/releases/download/v${{ env.THERMO_PARSER_VERSION }}/ThermoRawFileParser${{ env.THERMO_PARSER_VERSION }}.zip"
-          unzip -o parser.zip -d parser_temp
-
-          # Find and copy the executable
-          if [ "${{ matrix.platform }}" == "windows" ]; then
-            cp parser_temp/ThermoRawFileParser.exe apps/backend/vendor/windows/
-          else
-            # For macOS/Linux - ThermoRawFileParser needs mono runtime
-            # Copy the .exe and we'll handle mono at runtime
-            if [ -f parser_temp/ThermoRawFileParser.exe ]; then
-              cp parser_temp/ThermoRawFileParser.exe apps/backend/vendor/${{ matrix.platform }}/ThermoRawFileParser
-              chmod +x apps/backend/vendor/${{ matrix.platform }}/ThermoRawFileParser || true
-            fi
-          fi
-          rm -rf parser.zip parser_temp
 
       # Build frontend
       - name: Install frontend dependencies
