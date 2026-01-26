@@ -1,31 +1,20 @@
-# ThermoRawFileParser Binaries
+# ThermoRawFileParser
 
-This directory contains platform-specific ThermoRawFileParser binaries for standalone builds.
+This directory contains ThermoRawFileParser v1.4.4 for converting Thermo .raw files to .mzML format.
 
-## Download
+## Files
 
-Download the appropriate version from:
-https://github.com/compomics/ThermoRawFileParser/releases
+- `ThermoRawFileParser.zip` - The .NET assembly (works on all platforms)
 
-## Setup
+## Usage
 
-### Windows
-1. Download `ThermoRawFileParser.zip`
-2. Extract `ThermoRawFileParser.exe` to `vendor/windows/`
+- **Windows**: Runs natively with .NET Framework
+- **macOS/Linux**: Requires mono runtime (`brew install mono` or `apt install mono-complete`)
 
-### macOS
-1. Download the mono version (or .NET Core version if available)
-2. Place `ThermoRawFileParser` binary in `vendor/macos/`
-3. Make it executable: `chmod +x vendor/macos/ThermoRawFileParser`
+## Source
 
-### Linux
-1. Download the Linux version
-2. Place `ThermoRawFileParser` binary in `vendor/linux/`
-3. Make it executable: `chmod +x vendor/linux/ThermoRawFileParser`
-4. Install libicu if needed: `apt-get install libicu-dev`
+Downloaded from: https://github.com/compomics/ThermoRawFileParser/releases/tag/v1.4.4
 
-## Notes
+## License
 
-- These binaries are not included in the repository due to licensing
-- The standalone app will work without them, but won't be able to convert `.raw` files
-- Users can still upload pre-converted `.mzML` files
+See the LICENSE and THERMO_LICENSE files inside the zip for licensing terms.

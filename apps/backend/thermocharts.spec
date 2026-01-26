@@ -1,38 +1,38 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec file for ThermoCharts standalone application."""
 import sys
+import zipfile
+import shutil
 from pathlib import Path
 
 block_cipher = None
 
-# ThermoRawFileParser - bundled for all platforms
-# The same .NET assemblies work on all platforms (Windows native, macOS/Linux via mono)
-if sys.platform == 'win32':
-    parser_src = 'vendor/windows'
-elif sys.platform == 'darwin':
-    parser_src = 'vendor/macos'
-else:
-    parser_src = 'vendor/linux'
+# Extract ThermoRawFileParser from zip if needed
+parser_zip = Path('vendor/ThermoRawFileParser.zip')
+parser_extract_dir = Path('build/ThermoRawFileParser')
 
-# Check if parser exists
-parser_path = Path(parser_src)
-parser_datas = []
-if parser_path.exists() and (parser_path / 'ThermoRawFileParser.exe').exists():
-    # Bundle entire vendor directory to include all DLLs
-    parser_datas = [(parser_src, 'ThermoRawFileParser')]
-    print(f"Including ThermoRawFileParser from {parser_src}")
+if parser_zip.exists():
+    # Clean and extract
+    if parser_extract_dir.exists():
+        shutil.rmtree(parser_extract_dir)
+    parser_extract_dir.mkdir(parents=True, exist_ok=True)
+
+    with zipfile.ZipFile(parser_zip, 'r') as zf:
+        zf.extractall(parser_extract_dir)
+
+    parser_datas = [(str(parser_extract_dir), 'ThermoRawFileParser')]
+    print(f"Including ThermoRawFileParser from {parser_zip}")
 else:
-    print(f"WARNING: ThermoRawFileParser not found at {parser_src}/ThermoRawFileParser.exe")
-    print("The built application will not be able to convert .raw files.")
+    parser_datas = []
+    print(f"WARNING: ThermoRawFileParser not found at {parser_zip}")
 
 # Static files (frontend build)
 static_path = Path('src/thermo_stats/static')
 static_datas = []
-if static_path.exists():
+if static_path.exists() and any(static_path.iterdir()):
     static_datas = [('src/thermo_stats/static', 'thermo_stats/static')]
 else:
     print("WARNING: Static frontend files not found at src/thermo_stats/static")
-    print("Build the frontend first: cd ../frontend && npm run build")
 
 a = Analysis(
     ['src/thermo_stats/main.py'],
@@ -97,7 +97,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # Exclude unnecessary modules to reduce size
         'tkinter',
         'matplotlib',
         'scipy',
@@ -128,7 +127,7 @@ exe = EXE(
     upx=True,
     upx_exclude=[],
     runtime_tmpdir=None,
-    console=False,  # No console window (GUI app)
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -147,8 +146,8 @@ if sys.platform == 'darwin':
         info_plist={
             'CFBundleName': 'ThermoCharts',
             'CFBundleDisplayName': 'ThermoCharts',
-            'CFBundleVersion': '0.1.0',
-            'CFBundleShortVersionString': '0.1.0',
+            'CFBundleVersion': '0.2.0',
+            'CFBundleShortVersionString': '0.2.0',
             'NSHighResolutionCapable': True,
             'LSMinimumSystemVersion': '10.15',
         },
