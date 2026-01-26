@@ -8,29 +8,11 @@ Interactive mass spectrometry data analysis dashboard for Thermo Scientific inst
 
 | Platform | Architecture | Download |
 |----------|--------------|----------|
-| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-macos-arm64.zip) |
-| **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-windows-x64.zip) |
-| **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/latest/download/ThermoCharts-linux-x64.tar.gz) |
+| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-macos-arm64.zip) |
+| **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-windows-x64.zip) |
+| **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-linux-x64.tar.gz) |
 
 > See all releases: [Releases](https://github.com/RusEu/thermo-raw/releases)
-
-### Installation
-
-1. Download the appropriate file for your platform
-2. Extract the archive
-3. Run the application:
-   - **macOS**: Double-click `ThermoCharts.app` (you may need to right-click > "Open" the first time)
-   - **Windows**: Double-click `ThermoCharts.exe`
-   - **Linux**: Run `./ThermoCharts` in terminal
-
-### Usage
-
-1. The application starts a local server and opens your browser to http://localhost:8000
-2. Upload `.raw` or `.mzML` mass spectrometry files
-3. Explore chromatograms, spectra, and perform SNR analysis
-
-Data is stored in `~/ThermoCharts/data/`
-
 ## Features
 
 - **File Upload**: Upload Thermo `.raw` files (auto-converted to mzML) or `.mzML` files directly
