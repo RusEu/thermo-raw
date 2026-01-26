@@ -92,7 +92,14 @@ export function UploadDialog({ isOpen, onClose, onUploadComplete }: UploadDialog
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (files?.[0]) {
-      handleUpload(files[0])
+      const file = files[0]
+      const suffix = file.name.toLowerCase().slice(file.name.lastIndexOf('.'))
+      if (suffix === '.raw' || suffix === '.mzml') {
+        handleUpload(file)
+      } else {
+        setError('Only .raw and .mzML files are supported')
+        setUploadState('error')
+      }
     }
   }, [handleUpload])
 
