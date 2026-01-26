@@ -142,6 +142,39 @@ export const api = {
     }>
   },
 
+  exportBulkSnrCsv: async (
+    fileId: string,
+    compounds: Array<{ name: string; mz: number; rt: number }>,
+    ppm: number = 5,
+    rtWindow: number = 2
+  ) => {
+    const res = await fetch(`${API_URL}/api/files/${fileId}/bulk-snr/csv`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compounds, ppm, rt_window: rtWindow }),
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+
+    // Get filename from Content-Disposition header or use default
+    const disposition = res.headers.get('Content-Disposition')
+    let filename = `snr_results_${fileId.replace('.mzML', '')}.csv`
+    if (disposition) {
+      const match = disposition.match(/filename=(.+)/)
+      if (match) filename = match[1]
+    }
+
+    // Get the CSV content and trigger download
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  },
+
   // Bokeh plot endpoints
   getPlotTic: (fileId: string, theme: 'light' | 'dark' = 'light') =>
     fetchJson(`/api/plots/${fileId}/tic?theme=${theme}`),

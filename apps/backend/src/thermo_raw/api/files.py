@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 
 from ..services.mzml import MzMLService, get_data_dir
@@ -294,6 +294,69 @@ def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
         file_id=file_id,
         ppm=request.ppm,
         rt_window=request.rt_window,
+    )
+
+
+@router.post("/{file_id}/bulk-snr/csv")
+def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
+    """
+    Calculate bulk SNR and return as downloadable CSV file.
+    """
+    service = get_file_service(file_id)
+    results = []
+
+    for compound in request.compounds:
+        try:
+            snr_result = service.get_precursor_snr(
+                target_mz=compound.mz,
+                target_rt=compound.rt,
+                ppm_tolerance=request.ppm,
+                rt_window=request.rt_window,
+            )
+            results.append({
+                "name": compound.name,
+                "mz": compound.mz,
+                "rt": compound.rt,
+                "snr": snr_result["snr"],
+                "signal": snr_result["signal"],
+                "noise": snr_result["noise"],
+                "apex_rt": snr_result["apex_rt"],
+                "actual_mz": snr_result["actual_mz"],
+            })
+        except Exception:
+            results.append({
+                "name": compound.name,
+                "mz": compound.mz,
+                "rt": compound.rt,
+                "snr": 0.0,
+                "signal": 0.0,
+                "noise": 0.0,
+                "apex_rt": compound.rt,
+                "actual_mz": compound.mz,
+            })
+
+    # Build CSV content
+    headers = ["name", "mz", "rt", "snr", "signal", "noise", "apex_rt", "actual_mz"]
+    lines = [",".join(headers)]
+    for r in results:
+        lines.append(",".join([
+            r["name"],
+            f"{r['mz']:.4f}",
+            f"{r['rt']:.2f}",
+            f"{r['snr']:.1f}",
+            f"{r['signal']:.2e}",
+            f"{r['noise']:.1f}",
+            f"{r['apex_rt']:.3f}",
+            f"{r['actual_mz']:.4f}",
+        ]))
+    csv_content = "\n".join(lines)
+
+    # Return as downloadable file
+    filename = f"snr_results_{file_id.replace('.mzML', '')}.csv"
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
 

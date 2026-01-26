@@ -85,6 +85,84 @@ def _wait_for_server():
     return False
 
 
+LOADING_HTML = """
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ThermoRaw</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e4e4e7;
+        }
+        .container {
+            text-align: center;
+        }
+        .logo {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .logo svg {
+            width: 48px;
+            height: 48px;
+            fill: white;
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .status {
+            color: #a1a1aa;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #27272a;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 3v18h18" stroke="white" fill="none"/>
+                <path d="M7 16l4-8 4 6 4-10" stroke="white" fill="none"/>
+            </svg>
+        </div>
+        <h1>ThermoRaw</h1>
+        <p class="status">Starting application...</p>
+        <div class="spinner"></div>
+    </div>
+</body>
+</html>
+"""
+
+
 def cli():
     """CLI entry point.
 
@@ -97,24 +175,29 @@ def cli():
         # Standalone mode: native GUI with pywebview
         import webview
 
-        # Start server in background thread
-        server_thread = threading.Thread(target=_run_server_background, daemon=True)
-        server_thread.start()
+        def on_loaded():
+            """Called when webview is ready - start server and load app."""
+            # Start server in background thread
+            server_thread = threading.Thread(target=_run_server_background, daemon=True)
+            server_thread.start()
 
-        # Wait for server to start
-        _wait_for_server()
+            # Wait for server to start
+            _wait_for_server()
 
-        # Create native window with embedded webview
+            # Navigate to the actual app
+            window.load_url("http://127.0.0.1:8000")
+
+        # Create native window with loading screen first
         window = webview.create_window(
             "ThermoRaw",
-            "http://127.0.0.1:8000",
+            html=LOADING_HTML,
             width=1400,
             height=900,
             min_size=(800, 600),
         )
 
-        # Start the GUI event loop (blocking)
-        webview.start()
+        # Start the GUI event loop with callback
+        webview.start(on_loaded)
     else:
         # Development mode: run web server (access via browser)
         uvicorn.run(

@@ -9,7 +9,7 @@ import { BokehPlot } from '@/components/BokehPlot'
 import { Loader, PlotLoader } from '@/components/Loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Search, Zap, Upload, Download, FileSpreadsheet, Play, X } from 'lucide-react'
+import { Search, Zap, Upload, Download, FileSpreadsheet, Play, X, Loader2 } from 'lucide-react'
 
 interface AnalysisPageProps {
   fileId: string
@@ -160,22 +160,19 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
     }
   }
 
-  const handleExportCsv = () => {
-    if (!bulkResults) return
+  const [isExporting, setIsExporting] = useState(false)
 
-    const headers = ['name', 'mz', 'rt', 'snr', 'signal', 'noise', 'apex_rt', 'actual_mz']
-    const rows = bulkResults.map(r =>
-      [r.name, r.mz.toFixed(4), r.rt.toFixed(2), r.snr.toFixed(1), r.signal.toExponential(2), r.noise.toFixed(1), r.apex_rt.toFixed(3), r.actual_mz.toFixed(4)].join(',')
-    )
-    const csv = [headers.join(','), ...rows].join('\n')
+  const handleExportCsv = async () => {
+    if (!bulkCompounds.length) return
 
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `snr_results_${fileId.replace('.mzML', '')}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    setIsExporting(true)
+    try {
+      await api.exportBulkSnrCsv(fileId, bulkCompounds, bulkPpm, bulkRtWindow)
+    } catch (error) {
+      console.error('Export failed:', error)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   const handleClearCompounds = () => {
@@ -594,9 +591,13 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                       ({bulkResults.length} compounds)
                     </span>
                   </CardTitle>
-                  <Button variant="outline" size="sm" onClick={handleExportCsv}>
-                    <Download className="h-4 w-4 mr-2" />
-                    Export CSV
+                  <Button variant="outline" size="sm" onClick={handleExportCsv} disabled={isExporting}>
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    {isExporting ? 'Exporting...' : 'Export CSV'}
                   </Button>
                 </div>
               </CardHeader>
