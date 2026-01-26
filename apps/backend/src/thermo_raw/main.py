@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 
 # Use absolute imports for PyInstaller compatibility
 from thermo_raw.api import files, plots
+from thermo_raw import __version__
+from thermo_raw.services.updater import check_for_updates, get_platform_info
 
 
 def is_frozen() -> bool:
@@ -27,7 +29,7 @@ def get_base_path() -> Path:
 
 app = FastAPI(
     title="ThermoRaw API",
-    version="0.2.0",
+    version=__version__,
 )
 
 # CORS for development
@@ -48,6 +50,35 @@ app.include_router(plots.router, prefix="/api/plots", tags=["plots"])
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# Version endpoint
+@app.get("/api/version")
+def version():
+    """Return current application version and platform info."""
+    system, machine = get_platform_info()
+    return {
+        "version": __version__,
+        "platform": system,
+        "architecture": machine,
+    }
+
+
+# Update check endpoint
+@app.get("/api/updates/check")
+def check_updates():
+    """Check for available updates."""
+    update_info = check_for_updates()
+    return {
+        "current_version": update_info.current_version,
+        "latest_version": update_info.latest_version,
+        "update_available": update_info.update_available,
+        "download_url": update_info.download_url,
+        "release_url": update_info.release_url,
+        "release_notes": update_info.release_notes,
+        "platform": update_info.platform,
+        "architecture": update_info.architecture,
+    }
 
 
 # Serve static frontend in production

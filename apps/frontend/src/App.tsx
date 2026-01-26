@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileSelector } from '@/components/FileSelector'
 import { SettingsDropdown } from '@/components/SettingsDropdown'
 import { UploadDialog } from '@/components/UploadDialog'
+import { UpdateBanner } from '@/components/UpdateBanner'
 import { OverviewPage } from '@/pages/OverviewPage'
 import { ExplorerPage } from '@/pages/ExplorerPage'
 import { AnalysisPage } from '@/pages/AnalysisPage'
@@ -81,6 +82,9 @@ function AppContent() {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Update Banner */}
+      <UpdateBanner />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="px-6 py-3">

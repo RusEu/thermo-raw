@@ -42,6 +42,33 @@ def get_parser_path() -> str:
     return "/opt/ThermoRawFileParser/ThermoRawFileParser.exe"
 
 
+def find_mono() -> str | None:
+    """Find mono executable, checking common installation paths.
+
+    PyWebView doesn't inherit shell PATH, so we check common locations.
+    """
+    # Common mono installation paths
+    mono_paths = [
+        "/opt/homebrew/bin/mono",  # Homebrew on Apple Silicon
+        "/usr/local/bin/mono",     # Homebrew on Intel Mac
+        "/usr/bin/mono",           # System or Linux package manager
+        "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono",  # Mono installer on macOS
+    ]
+
+    # First try PATH (works in terminal/dev mode)
+    import shutil
+    mono_in_path = shutil.which("mono")
+    if mono_in_path:
+        return mono_in_path
+
+    # Check common locations
+    for path in mono_paths:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+
+    return None
+
+
 def get_parser_command(parser_path: str) -> list[str]:
     """Get the command to run ThermoRawFileParser.
 
@@ -51,6 +78,10 @@ def get_parser_command(parser_path: str) -> list[str]:
         return [parser_path]
     else:
         # macOS and Linux need mono to run .NET executables
+        mono = find_mono()
+        if mono:
+            return [mono, parser_path]
+        # Fall back to "mono" and let it fail with helpful error message
         return ["mono", parser_path]
 
 

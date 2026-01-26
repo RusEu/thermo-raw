@@ -29,6 +29,23 @@ export interface FileStats {
   polarity: string
 }
 
+export interface VersionInfo {
+  version: string
+  platform: string
+  architecture: string
+}
+
+export interface UpdateInfo {
+  current_version: string
+  latest_version: string
+  update_available: boolean
+  download_url: string | null
+  release_url: string | null
+  release_notes: string | null
+  platform: string
+  architecture: string
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`)
   if (!res.ok) {
@@ -48,6 +65,10 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 export const api = {
   getFiles: () => fetchJson<FileInfo[]>('/api/files'),
+
+  getVersion: () => fetchJson<VersionInfo>('/api/version'),
+
+  checkForUpdates: () => fetchJson<UpdateInfo>('/api/updates/check'),
 
   getFileStats: (fileId: string) => fetchJson<FileStats>(`/api/files/${fileId}/stats`),
 

@@ -1103,18 +1103,23 @@ wheels = [
 
 [[package]]
 name = "thermo-raw"
-version = "0.2.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "bokeh" },
     { name = "fastapi" },
     { name = "lxml" },
     { name = "numpy" },
+    { name = "packaging" },
     { name = "pandas" },
     { name = "pyteomics" },
     { name = "python-multipart" },
-    { name = "pywebview" },
     { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+gui = [
+    { name = "pywebview" },
 ]
 
 [package.metadata]
@@ -1123,12 +1128,14 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.109.0" },
     { name = "lxml", specifier = ">=5.0.0" },
     { name = "numpy", specifier = ">=1.24.0" },
+    { name = "packaging", specifier = ">=23.0" },
     { name = "pandas", specifier = ">=2.0.0" },
     { name = "pyteomics", specifier = ">=4.6.0" },
     { name = "python-multipart", specifier = ">=0.0.6" },
-    { name = "pywebview", specifier = ">=5.0.0" },
+    { name = "pywebview", marker = "extra == 'gui'", specifier = ">=5.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.27.0" },
 ]
+provides-extras = ["gui"]
 
 [[package]]
 name = "tornado"
