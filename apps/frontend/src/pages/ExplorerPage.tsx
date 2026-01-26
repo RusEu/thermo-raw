@@ -143,11 +143,11 @@ export function ExplorerPage({ fileId }: ExplorerPageProps) {
           <>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Scan:</span>
-              <span className="text-xs font-mono">{spectrum.metadata.scan_index}</span>
+              <span className="text-xs font-mono">{String(spectrum.metadata.scan_index)}</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">Level:</span>
-              <span className="text-xs font-mono text-pink-500">MS{spectrum.metadata.ms_level}</span>
+              <span className="text-xs font-mono text-pink-500">MS{String(spectrum.metadata.ms_level)}</span>
             </div>
           </>
         )}
