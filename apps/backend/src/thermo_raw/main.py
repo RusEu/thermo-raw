@@ -232,16 +232,16 @@ def cli():
         # Standalone mode: native GUI with pywebview
         import webview
 
+        # Start server IMMEDIATELY in background (parallel with window creation)
+        server_thread = threading.Thread(target=_run_server_background, daemon=True)
+        server_thread.start()
+
         # Create API instance
         api = Api()
 
         def on_loaded():
-            """Called when webview is ready - start server and load app."""
-            # Start server in background thread
-            server_thread = threading.Thread(target=_run_server_background, daemon=True)
-            server_thread.start()
-
-            # Wait for server to start
+            """Called when webview is ready - wait for server and load app."""
+            # Server is already starting, just wait for it
             _wait_for_server()
 
             # Navigate to the actual app

@@ -127,13 +127,12 @@ a = Analysis(
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
+# Use onedir mode for faster startup (no extraction on each run)
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
-    [],
+    [],  # Don't include binaries/data here - use COLLECT instead
+    exclude_binaries=True,
     name='ThermoRaw',
     debug=False,
     bootloader_ignore_signals=False,
@@ -150,10 +149,22 @@ exe = EXE(
     icon='icon.ico' if sys.platform == 'win32' and Path('icon.ico').exists() else None,
 )
 
+# Collect all files into a directory (onedir mode)
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name='ThermoRaw',
+)
+
 # macOS app bundle
 if sys.platform == 'darwin':
     app = BUNDLE(
-        exe,
+        coll,  # Use COLLECT output for app bundle
         name='ThermoRaw.app',
         icon='icon.icns' if Path('icon.icns').exists() else None,
         bundle_identifier='com.thermoraw.app',

@@ -92,18 +92,61 @@ jobs:
           uv run pyinstaller thermoraw.spec --clean --noconfirm
 
       # Package artifacts
-      - name: Create release archive (macOS)
+      - name: Create DMG (macOS)
         if: matrix.platform == 'macos'
         working-directory: apps/backend/dist
         run: |
-          zip -r ${{ matrix.artifact_name }}.zip ThermoRaw.app
+          # Create DMG with app bundle
+          hdiutil create -volname "ThermoRaw" -srcfolder ThermoRaw.app -ov -format UDZO ${{ matrix.artifact_name }}.dmg
 
-      - name: Create release archive (Windows)
+      - name: Create Installer (Windows)
         if: matrix.platform == 'windows'
-        working-directory: apps/backend/dist
+        working-directory: apps/backend
         shell: pwsh
         run: |
-          Compress-Archive -Path ThermoRaw.exe -DestinationPath "${{ matrix.artifact_name }}.zip"
+          # Install NSIS
+          choco install nsis -y
+
+          # Create NSIS script
+          @"
+          !include "MUI2.nsh"
+
+          Name "ThermoRaw"
+          OutFile "dist\${{ matrix.artifact_name }}-setup.exe"
+          InstallDir "`$PROGRAMFILES\ThermoRaw"
+          RequestExecutionLevel admin
+
+          !insertmacro MUI_PAGE_DIRECTORY
+          !insertmacro MUI_PAGE_INSTFILES
+          !insertmacro MUI_LANGUAGE "English"
+
+          Section "Install"
+            SetOutPath "`$INSTDIR"
+            File /r "dist\ThermoRaw\*.*"
+
+            ; Create shortcuts
+            CreateDirectory "`$SMPROGRAMS\ThermoRaw"
+            CreateShortcut "`$SMPROGRAMS\ThermoRaw\ThermoRaw.lnk" "`$INSTDIR\ThermoRaw.exe"
+            CreateShortcut "`$DESKTOP\ThermoRaw.lnk" "`$INSTDIR\ThermoRaw.exe"
+
+            ; Create uninstaller
+            WriteUninstaller "`$INSTDIR\Uninstall.exe"
+
+            ; Add to Add/Remove Programs
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThermoRaw" "DisplayName" "ThermoRaw"
+            WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThermoRaw" "UninstallString" "`$INSTDIR\Uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            RMDir /r "`$INSTDIR"
+            RMDir /r "`$SMPROGRAMS\ThermoRaw"
+            Delete "`$DESKTOP\ThermoRaw.lnk"
+            DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\ThermoRaw"
+          SectionEnd
+          "@ | Out-File -FilePath thermoraw.nsi -Encoding ASCII
+
+          # Build installer
+          makensis thermoraw.nsi
 
       - name: Create release archive (Linux)
         if: matrix.platform == 'linux'
@@ -117,7 +160,8 @@ jobs:
         with:
           name: ${{ matrix.artifact_name }}
           path: |
-            apps/backend/dist/${{ matrix.artifact_name }}.zip
+            apps/backend/dist/${{ matrix.artifact_name }}.dmg
+            apps/backend/dist/${{ matrix.artifact_name }}-setup.exe
             apps/backend/dist/${{ matrix.artifact_name }}.tar.gz
           if-no-files-found: ignore
 
@@ -160,8 +204,8 @@ jobs:
 
           | Platform | Architecture | Download |
           |----------|--------------|----------|
-          | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-macos-arm64.zip) |
-          | **Windows** | x64 | [ThermoRaw-windows-x64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-windows-x64.zip) |
+          | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.dmg](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-macos-arm64.dmg) |
+          | **Windows** | x64 | [ThermoRaw-windows-x64-setup.exe](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-windows-x64-setup.exe) |
           | **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-linux-x64.tar.gz) |
 
           > See all releases: [Releases](https://github.com/${{ github.repository }}/releases)
@@ -199,8 +243,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/ThermoRaw-macos-arm64/ThermoRaw-macos-arm64.zip
-            artifacts/ThermoRaw-windows-x64/ThermoRaw-windows-x64.zip
+            artifacts/ThermoRaw-macos-arm64/ThermoRaw-macos-arm64.dmg
+            artifacts/ThermoRaw-windows-x64/ThermoRaw-windows-x64-setup.exe
             artifacts/ThermoRaw-linux-x64/ThermoRaw-linux-x64.tar.gz
           generate_release_notes: true
           draft: false
@@ -212,18 +256,15 @@ jobs:
 
             | Platform | Architecture | File |
             |----------|--------------|------|
-            | **macOS** | Apple Silicon (M1/M2/M3) | `ThermoRaw-macos-arm64.zip` |
-            | **Windows** | x64 | `ThermoRaw-windows-x64.zip` |
+            | **macOS** | Apple Silicon (M1/M2/M3) | `ThermoRaw-macos-arm64.dmg` |
+            | **Windows** | x64 | `ThermoRaw-windows-x64-setup.exe` |
             | **Linux** | x64 | `ThermoRaw-linux-x64.tar.gz` |
 
             ### Installation
 
-            1. Download the appropriate file for your platform and architecture
-            2. Extract the archive
-            3. Run the application:
-               - **macOS**: Double-click `ThermoRaw.app`
-               - **Windows**: Double-click `ThermoRaw.exe`
-               - **Linux**: Run `./ThermoRaw` in terminal
+            - **macOS**: Open the DMG, drag ThermoRaw to Applications
+            - **Windows**: Run the installer, follow the setup wizard
+            - **Linux**: Extract and run `./ThermoRaw/ThermoRaw`
 
             ### Usage
 
@@ -236,5 +277,5 @@ jobs:
             ### Platform Notes
 
             - **macOS**: First launch may require right-click > "Open" due to Gatekeeper
-            - **Windows**: SmartScreen may show a warning for unsigned executables - click "More info" > "Run anyway"
-            - **Linux**: Make executable if needed: `chmod +x ThermoRaw`
+            - **Windows**: SmartScreen may show a warning - click "More info" > "Run anyway"
+            - **Linux**: Make executable if needed: `chmod +x ThermoRaw/ThermoRaw`
