@@ -1,4 +1,5 @@
 """FastAPI application for ThermoRaw."""
+import os
 import sys
 import threading
 from pathlib import Path
@@ -57,8 +58,13 @@ if static_dir.exists():
     app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 
+# Global server reference for cleanup
+_server = None
+
+
 def _run_server_background():
     """Run the uvicorn server in a background thread."""
+    global _server
     import uvicorn
 
     config = uvicorn.Config(
@@ -67,8 +73,15 @@ def _run_server_background():
         port=8000,
         log_level="warning",
     )
-    server = uvicorn.Server(config)
-    server.run()
+    _server = uvicorn.Server(config)
+    _server.run()
+
+
+def _shutdown_server():
+    """Signal the server to shut down."""
+    global _server
+    if _server:
+        _server.should_exit = True
 
 
 def _wait_for_server():
@@ -234,6 +247,12 @@ def cli():
             # Navigate to the actual app
             window.load_url("http://127.0.0.1:8000")
 
+        def on_closed():
+            """Called when the window is closed - clean up and exit."""
+            _shutdown_server()
+            # Force exit to ensure all threads are terminated
+            os._exit(0)
+
         # Create native window with loading screen first
         window = webview.create_window(
             "ThermoRaw",
@@ -246,6 +265,9 @@ def cli():
 
         # Set window reference in API
         api.set_window(window)
+
+        # Register close handler
+        window.events.closed += on_closed
 
         # Start the GUI event loop with callback
         webview.start(on_loaded)
