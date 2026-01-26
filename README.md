@@ -23,9 +23,9 @@ Interactive mass spectrometry data analysis dashboard for Thermo Scientific inst
 
 | Platform | Architecture | Download |
 |----------|--------------|----------|
-| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.dmg](https://github.com/RusEu/thermo-raw/releases/download/v0.4.4/ThermoRaw-macos-arm64.dmg) |
-| **Windows** | x64 | [ThermoRaw-windows-x64-setup.exe](https://github.com/RusEu/thermo-raw/releases/download/v0.4.4/ThermoRaw-windows-x64-setup.exe) |
-| **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.4.4/ThermoRaw-linux-x64.tar.gz) |
+| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.dmg](https://github.com/RusEu/thermo-raw/releases/download/v0.4.5/ThermoRaw-macos-arm64.dmg) |
+| **Windows** | x64 | [ThermoRaw-windows-x64-setup.exe](https://github.com/RusEu/thermo-raw/releases/download/v0.4.5/ThermoRaw-windows-x64-setup.exe) |
+| **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.4.5/ThermoRaw-linux-x64.tar.gz) |
 
 > See all releases: [Releases](https://github.com/RusEu/thermo-raw/releases)
 ## Features
