@@ -1,5 +1,5 @@
 @echo off
-REM Build ThermoCharts as a standalone executable for Windows
+REM Build ThermoRaw as a standalone executable for Windows
 setlocal enabledelayedexpansion
 
 set SCRIPT_DIR=%~dp0
@@ -7,7 +7,7 @@ set ROOT_DIR=%SCRIPT_DIR%..
 set FRONTEND_DIR=%ROOT_DIR%\apps\frontend
 set BACKEND_DIR=%ROOT_DIR%\apps\backend
 
-echo === ThermoCharts Standalone Build ===
+echo === ThermoRaw Standalone Build ===
 echo.
 
 REM Check for required tools
@@ -27,23 +27,22 @@ echo.
 
 REM Step 2: Copy frontend build to backend static folder
 echo [2/4] Copying frontend to backend static folder...
-if exist "%BACKEND_DIR%\src\thermo_stats\static" rmdir /s /q "%BACKEND_DIR%\src\thermo_stats\static"
-mkdir "%BACKEND_DIR%\src\thermo_stats\static"
-xcopy /E /I /Q "%FRONTEND_DIR%\dist\*" "%BACKEND_DIR%\src\thermo_stats\static\"
+if exist "%BACKEND_DIR%\src\thermo_raw\static" rmdir /s /q "%BACKEND_DIR%\src\thermo_raw\static"
+mkdir "%BACKEND_DIR%\src\thermo_raw\static"
+xcopy /E /I /Q "%FRONTEND_DIR%\dist\*" "%BACKEND_DIR%\src\thermo_raw\static\"
 echo Frontend copied to backend.
 echo.
 
 REM Step 3: Check for ThermoRawFileParser
 echo [3/4] Checking for ThermoRawFileParser...
-set PARSER_DIR=%BACKEND_DIR%\vendor\windows
-set PARSER_NAME=ThermoRawFileParser.exe
+set PARSER_ZIP=%BACKEND_DIR%\vendor\ThermoRawFileParser.zip
 
-if exist "%PARSER_DIR%\%PARSER_NAME%" (
-    echo ThermoRawFileParser found at %PARSER_DIR%\%PARSER_NAME%
+if exist "%PARSER_ZIP%" (
+    echo ThermoRawFileParser found at %PARSER_ZIP%
 ) else (
-    echo WARNING: ThermoRawFileParser not found at %PARSER_DIR%\%PARSER_NAME%
+    echo WARNING: ThermoRawFileParser not found at %PARSER_ZIP%
     echo Download from: https://github.com/compomics/ThermoRawFileParser/releases
-    echo Place the executable in: %PARSER_DIR%\
+    echo Place the zip file in: %BACKEND_DIR%\vendor\
     echo.
     echo Continuing build without ThermoRawFileParser...
     echo ^(The app will work but won't convert .raw files^)
@@ -65,21 +64,20 @@ call .venv\Scripts\activate.bat
 pip install -q --upgrade pip
 pip install -q pyinstaller
 
-REM Install project dependencies (using pyproject.toml)
-pip install -q -e .
+REM Install project dependencies with GUI extras (using pyproject.toml)
+pip install -q -e ".[gui]"
 
 REM Run PyInstaller
-pyinstaller thermocharts.spec --clean --noconfirm
+pyinstaller thermoraw.spec --clean --noconfirm
 
 echo.
 echo === Build Complete ===
-echo Executable: %BACKEND_DIR%\dist\ThermoCharts.exe
+echo Executable: %BACKEND_DIR%\dist\ThermoRaw.exe
 echo.
-echo To run: %BACKEND_DIR%\dist\ThermoCharts.exe
+echo To run: %BACKEND_DIR%\dist\ThermoRaw.exe
 echo.
 echo The app will:
-echo   1. Start a local server on http://localhost:8000
-echo   2. Open your browser automatically
-echo   3. Store data in %%USERPROFILE%%\ThermoCharts\data\
+echo   1. Open a native window with the ThermoRaw interface
+echo   2. Store data in %%USERPROFILE%%\ThermoRaw\data\
 
 endlocal

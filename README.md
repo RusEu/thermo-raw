@@ -1,4 +1,4 @@
-# ThermoCharts
+# ThermoRaw
 
 Interactive mass spectrometry data analysis dashboard for Thermo Scientific instruments. Built with FastAPI, React, and Bokeh.
 
@@ -8,9 +8,9 @@ Interactive mass spectrometry data analysis dashboard for Thermo Scientific inst
 
 | Platform | Architecture | Download |
 |----------|--------------|----------|
-| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-macos-arm64.zip) |
-| **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-windows-x64.zip) |
-| **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoCharts-linux-x64.tar.gz) |
+| **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoRaw-macos-arm64.zip) |
+| **Windows** | x64 | [ThermoRaw-windows-x64.zip](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoRaw-windows-x64.zip) |
+| **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/RusEu/thermo-raw/releases/download/v0.2.0/ThermoRaw-linux-x64.tar.gz) |
 
 > See all releases: [Releases](https://github.com/RusEu/thermo-raw/releases)
 ## Features
@@ -45,7 +45,7 @@ Docker handles all dependencies including ThermoRawFileParser for `.raw` file co
 thermo-charts/
 ├── apps/
 │   ├── backend/          # FastAPI + Bokeh backend
-│   │   ├── src/thermo_stats/
+│   │   ├── src/thermo_raw/
 │   │   │   ├── main.py           # FastAPI app entry point
 │   │   │   ├── api/              # API routes
 │   │   │   └── services/         # Data processing services
@@ -73,7 +73,7 @@ cd thermo-charts
 # Backend
 cd apps/backend
 uv sync
-uv run python -m thermo_stats.main
+uv run python -m thermo_raw.main
 
 # Frontend (in another terminal)
 cd apps/frontend

@@ -31,7 +31,7 @@ def get_project_root() -> Path:
 def get_data_dir() -> Path:
     """Get data directory from env or auto-detect.
 
-    In frozen (standalone) mode, uses ~/ThermoCharts/data/
+    In frozen (standalone) mode, uses ~/ThermoRaw/data/
     In development, uses DATA_DIR env var or auto-detected data/ folder.
     """
     # First check environment variable (works in both modes)
@@ -40,7 +40,7 @@ def get_data_dir() -> Path:
 
     # In frozen mode (standalone app), use user's home directory
     if is_frozen():
-        data_dir = Path.home() / "ThermoCharts" / "data"
+        data_dir = Path.home() / "ThermoRaw" / "data"
         data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir
 

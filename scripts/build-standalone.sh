@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build ThermoCharts as a standalone executable for macOS/Linux
+# Build ThermoRaw as a standalone executable for macOS/Linux
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -7,7 +7,7 @@ ROOT_DIR="$(dirname "$SCRIPT_DIR")"
 FRONTEND_DIR="$ROOT_DIR/apps/frontend"
 BACKEND_DIR="$ROOT_DIR/apps/backend"
 
-echo "=== ThermoCharts Standalone Build ==="
+echo "=== ThermoRaw Standalone Build ==="
 echo ""
 
 # Check for required tools
@@ -25,31 +25,22 @@ echo ""
 
 # Step 2: Copy frontend build to backend static folder
 echo "[2/4] Copying frontend to backend static folder..."
-rm -rf "$BACKEND_DIR/src/thermo_stats/static"
-mkdir -p "$BACKEND_DIR/src/thermo_stats/static"
-cp -r "$FRONTEND_DIR/dist/"* "$BACKEND_DIR/src/thermo_stats/static/"
+rm -rf "$BACKEND_DIR/src/thermo_raw/static"
+mkdir -p "$BACKEND_DIR/src/thermo_raw/static"
+cp -r "$FRONTEND_DIR/dist/"* "$BACKEND_DIR/src/thermo_raw/static/"
 echo "Frontend copied to backend."
 echo ""
 
 # Step 3: Check for ThermoRawFileParser
 echo "[3/4] Checking for ThermoRawFileParser..."
-if [[ "$OSTYPE" == "darwin"* ]]; then
-    PARSER_DIR="$BACKEND_DIR/vendor/macos"
-    PARSER_NAME="ThermoRawFileParser"
-elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
-    PARSER_DIR="$BACKEND_DIR/vendor/linux"
-    PARSER_NAME="ThermoRawFileParser"
-else
-    PARSER_DIR="$BACKEND_DIR/vendor/windows"
-    PARSER_NAME="ThermoRawFileParser.exe"
-fi
+PARSER_ZIP="$BACKEND_DIR/vendor/ThermoRawFileParser.zip"
 
-if [ -f "$PARSER_DIR/$PARSER_NAME" ]; then
-    echo "ThermoRawFileParser found at $PARSER_DIR/$PARSER_NAME"
+if [ -f "$PARSER_ZIP" ]; then
+    echo "ThermoRawFileParser found at $PARSER_ZIP"
 else
-    echo "WARNING: ThermoRawFileParser not found at $PARSER_DIR/$PARSER_NAME"
+    echo "WARNING: ThermoRawFileParser not found at $PARSER_ZIP"
     echo "Download from: https://github.com/compomics/ThermoRawFileParser/releases"
-    echo "Place the executable in: $PARSER_DIR/"
+    echo "Place the zip file in: $BACKEND_DIR/vendor/"
     echo ""
     echo "Continuing build without ThermoRawFileParser..."
     echo "(The app will work but won't convert .raw files)"
@@ -71,25 +62,24 @@ source .venv/bin/activate
 pip install -q --upgrade pip
 pip install -q pyinstaller
 
-# Install project dependencies (using pyproject.toml)
-pip install -q -e .
+# Install project dependencies with GUI extras (using pyproject.toml)
+pip install -q -e ".[gui]"
 
 # Run PyInstaller
-pyinstaller thermocharts.spec --clean --noconfirm
+pyinstaller thermoraw.spec --clean --noconfirm
 
 echo ""
 echo "=== Build Complete ==="
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    echo "macOS app bundle: $BACKEND_DIR/dist/ThermoCharts.app"
+    echo "macOS app bundle: $BACKEND_DIR/dist/ThermoRaw.app"
     echo ""
-    echo "To run: open $BACKEND_DIR/dist/ThermoCharts.app"
+    echo "To run: open $BACKEND_DIR/dist/ThermoRaw.app"
 else
-    echo "Executable: $BACKEND_DIR/dist/ThermoCharts"
+    echo "Executable: $BACKEND_DIR/dist/ThermoRaw"
     echo ""
-    echo "To run: $BACKEND_DIR/dist/ThermoCharts"
+    echo "To run: $BACKEND_DIR/dist/ThermoRaw"
 fi
 echo ""
 echo "The app will:"
-echo "  1. Start a local server on http://localhost:8000"
-echo "  2. Open your browser automatically"
-echo "  3. Store data in ~/ThermoCharts/data/"
+echo "  1. Open a native window with the ThermoRaw interface"
+echo "  2. Store data in ~/ThermoRaw/data/"

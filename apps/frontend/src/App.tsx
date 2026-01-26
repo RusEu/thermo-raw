@@ -88,8 +88,8 @@ function AppContent() {
             <div className="flex items-center gap-6">
               {/* Logo */}
               <div className="flex items-center gap-2.5">
-                <img src="/logo-icon.svg" alt="ThermoStats" className="h-8 w-8 rounded-lg" />
-                <span className="font-semibold text-foreground">ThermoStats</span>
+                <img src="/logo-icon.svg" alt="ThermoRaw" className="h-8 w-8 rounded-lg" />
+                <span className="font-semibold text-foreground">ThermoRaw</span>
               </div>
               {/* Navigation */}
               {selectedFile && <Navigation />}

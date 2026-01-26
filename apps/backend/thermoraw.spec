@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-"""PyInstaller spec file for ThermoCharts standalone application."""
+"""PyInstaller spec file for ThermoRaw standalone application."""
 import sys
 import zipfile
 import shutil
@@ -27,15 +27,15 @@ else:
     print(f"WARNING: ThermoRawFileParser not found at {parser_zip}")
 
 # Static files (frontend build)
-static_path = Path('src/thermo_stats/static')
+static_path = Path('src/thermo_raw/static')
 static_datas = []
 if static_path.exists() and any(static_path.iterdir()):
-    static_datas = [('src/thermo_stats/static', 'thermo_stats/static')]
+    static_datas = [('src/thermo_raw/static', 'thermo_raw/static')]
 else:
-    print("WARNING: Static frontend files not found at src/thermo_stats/static")
+    print("WARNING: Static frontend files not found at src/thermo_raw/static")
 
 a = Analysis(
-    ['src/thermo_stats/main.py'],
+    ['src/thermo_raw/main.py'],
     pathex=[],
     binaries=[],
     datas=static_datas + parser_datas,
@@ -92,6 +92,20 @@ a = Analysis(
         'bokeh.palettes',
         # Email for validators
         'email_validator',
+        # pywebview for native GUI
+        'webview',
+        'webview.platforms',
+        'webview.platforms.cocoa',
+        'webview.platforms.winforms',
+        'webview.platforms.edgechromium',
+        'webview.platforms.gtk',
+        'webview.platforms.qt',
+        # macOS pyobjc for WebKit
+        'objc',
+        'Foundation',
+        'AppKit',
+        'WebKit',
+        'PyObjCTools',
     ],
     hookspath=[],
     hooksconfig={},
@@ -120,7 +134,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='ThermoCharts',
+    name='ThermoRaw',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -140,12 +154,12 @@ exe = EXE(
 if sys.platform == 'darwin':
     app = BUNDLE(
         exe,
-        name='ThermoCharts.app',
+        name='ThermoRaw.app',
         icon='icon.icns' if Path('icon.icns').exists() else None,
-        bundle_identifier='com.thermocharts.app',
+        bundle_identifier='com.thermoraw.app',
         info_plist={
-            'CFBundleName': 'ThermoCharts',
-            'CFBundleDisplayName': 'ThermoCharts',
+            'CFBundleName': 'ThermoRaw',
+            'CFBundleDisplayName': 'ThermoRaw',
             'CFBundleVersion': '0.2.0',
             'CFBundleShortVersionString': '0.2.0',
             'NSHighResolutionCapable': True,

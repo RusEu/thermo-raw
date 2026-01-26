@@ -21,17 +21,17 @@ jobs:
           - os: macos-latest
             platform: macos
             arch: arm64
-            artifact_name: ThermoCharts-macos-arm64
+            artifact_name: ThermoRaw-macos-arm64
           # Windows builds
           - os: windows-latest
             platform: windows
             arch: x64
-            artifact_name: ThermoCharts-windows-x64
+            artifact_name: ThermoRaw-windows-x64
           # Linux builds
           - os: ubuntu-latest
             platform: linux
             arch: x64
-            artifact_name: ThermoCharts-linux-x64
+            artifact_name: ThermoRaw-linux-x64
 
     runs-on: ${{ matrix.os }}
 
@@ -68,41 +68,48 @@ jobs:
       - name: Copy frontend to backend static
         shell: bash
         run: |
-          mkdir -p apps/backend/src/thermo_stats/static
-          cp -r apps/frontend/dist/* apps/backend/src/thermo_stats/static/
+          mkdir -p apps/backend/src/thermo_raw/static
+          cp -r apps/frontend/dist/* apps/backend/src/thermo_raw/static/
+
+      # Install Linux GUI dependencies for pywebview
+      - name: Install Linux GUI dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
 
       # Build backend executable
       - name: Install backend dependencies
         working-directory: apps/backend
         run: |
-          uv sync
+          uv sync --extra gui
           uv pip install pyinstaller
 
       - name: Build with PyInstaller
         working-directory: apps/backend
         shell: bash
         run: |
-          uv run pyinstaller thermocharts.spec --clean --noconfirm
+          uv run pyinstaller thermoraw.spec --clean --noconfirm
 
       # Package artifacts
       - name: Create release archive (macOS)
         if: matrix.platform == 'macos'
         working-directory: apps/backend/dist
         run: |
-          zip -r ${{ matrix.artifact_name }}.zip ThermoCharts.app
+          zip -r ${{ matrix.artifact_name }}.zip ThermoRaw.app
 
       - name: Create release archive (Windows)
         if: matrix.platform == 'windows'
         working-directory: apps/backend/dist
         shell: pwsh
         run: |
-          Compress-Archive -Path ThermoCharts.exe -DestinationPath "${{ matrix.artifact_name }}.zip"
+          Compress-Archive -Path ThermoRaw.exe -DestinationPath "${{ matrix.artifact_name }}.zip"
 
       - name: Create release archive (Linux)
         if: matrix.platform == 'linux'
         working-directory: apps/backend/dist
         run: |
-          tar -czvf ${{ matrix.artifact_name }}.tar.gz ThermoCharts
+          tar -czvf ${{ matrix.artifact_name }}.tar.gz ThermoRaw
 
       # Upload artifacts
       - name: Upload build artifact
@@ -153,9 +160,9 @@ jobs:
 
           | Platform | Architecture | Download |
           |----------|--------------|----------|
-          | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoCharts-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-macos-arm64.zip) |
-          | **Windows** | x64 | [ThermoCharts-windows-x64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-windows-x64.zip) |
-          | **Linux** | x64 | [ThermoCharts-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoCharts-linux-x64.tar.gz) |
+          | **macOS** | Apple Silicon (M1/M2/M3) | [ThermoRaw-macos-arm64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-macos-arm64.zip) |
+          | **Windows** | x64 | [ThermoRaw-windows-x64.zip](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-windows-x64.zip) |
+          | **Linux** | x64 | [ThermoRaw-linux-x64.tar.gz](https://github.com/${{ github.repository }}/releases/download/VERSION_PLACEHOLDER/ThermoRaw-linux-x64.tar.gz) |
 
           > See all releases: [Releases](https://github.com/${{ github.repository }}/releases)
           EOF
@@ -192,42 +199,42 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/ThermoCharts-macos-arm64/ThermoCharts-macos-arm64.zip
-            artifacts/ThermoCharts-windows-x64/ThermoCharts-windows-x64.zip
-            artifacts/ThermoCharts-linux-x64/ThermoCharts-linux-x64.tar.gz
+            artifacts/ThermoRaw-macos-arm64/ThermoRaw-macos-arm64.zip
+            artifacts/ThermoRaw-windows-x64/ThermoRaw-windows-x64.zip
+            artifacts/ThermoRaw-linux-x64/ThermoRaw-linux-x64.tar.gz
           generate_release_notes: true
           draft: false
           prerelease: ${{ contains(github.ref, 'alpha') || contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
           body: |
-            ## ThermoCharts ${{ steps.version.outputs.VERSION }}
+            ## ThermoRaw ${{ steps.version.outputs.VERSION }}
 
             ### Downloads
 
             | Platform | Architecture | File |
             |----------|--------------|------|
-            | **macOS** | Apple Silicon (M1/M2/M3) | `ThermoCharts-macos-arm64.zip` |
-            | **Windows** | x64 | `ThermoCharts-windows-x64.zip` |
-            | **Linux** | x64 | `ThermoCharts-linux-x64.tar.gz` |
+            | **macOS** | Apple Silicon (M1/M2/M3) | `ThermoRaw-macos-arm64.zip` |
+            | **Windows** | x64 | `ThermoRaw-windows-x64.zip` |
+            | **Linux** | x64 | `ThermoRaw-linux-x64.tar.gz` |
 
             ### Installation
 
             1. Download the appropriate file for your platform and architecture
             2. Extract the archive
             3. Run the application:
-               - **macOS**: Double-click `ThermoCharts.app`
-               - **Windows**: Double-click `ThermoCharts.exe`
-               - **Linux**: Run `./ThermoCharts` in terminal
+               - **macOS**: Double-click `ThermoRaw.app`
+               - **Windows**: Double-click `ThermoRaw.exe`
+               - **Linux**: Run `./ThermoRaw` in terminal
 
             ### Usage
 
-            1. The application starts a local server and opens your browser to http://localhost:8000
+            1. Launch the application - a native window will open
             2. Upload `.raw` or `.mzML` mass spectrometry files
             3. Explore chromatograms, spectra, and perform SNR analysis
 
-            Data is stored in `~/ThermoCharts/data/`
+            Data is stored in `~/ThermoRaw/data/`
 
             ### Platform Notes
 
             - **macOS**: First launch may require right-click > "Open" due to Gatekeeper
             - **Windows**: SmartScreen may show a warning for unsigned executables - click "More info" > "Run anyway"
-            - **Linux**: Make executable if needed: `chmod +x ThermoCharts`
+            - **Linux**: Make executable if needed: `chmod +x ThermoRaw`
