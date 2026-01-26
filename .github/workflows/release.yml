@@ -96,8 +96,28 @@ jobs:
         if: matrix.platform == 'macos'
         working-directory: apps/backend/dist
         run: |
-          # Create DMG with app bundle
-          hdiutil create -volname "ThermoRaw" -srcfolder ThermoRaw.app -ov -format UDZO ${{ matrix.artifact_name }}.dmg
+          # Install create-dmg
+          brew install create-dmg
+
+          # Create DMG with Applications symlink and nice layout
+          create-dmg \
+            --volname "ThermoRaw" \
+            --volicon "../icon.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "ThermoRaw.app" 150 190 \
+            --hide-extension "ThermoRaw.app" \
+            --app-drop-link 450 190 \
+            "${{ matrix.artifact_name }}.dmg" \
+            "ThermoRaw.app" \
+            || true
+
+          # Fallback to hdiutil if create-dmg fails (e.g., no icon file)
+          if [ ! -f "${{ matrix.artifact_name }}.dmg" ]; then
+            echo "create-dmg failed, falling back to hdiutil"
+            hdiutil create -volname "ThermoRaw" -srcfolder ThermoRaw.app -ov -format UDZO ${{ matrix.artifact_name }}.dmg
+          fi
 
       - name: Create Installer (Windows)
         if: matrix.platform == 'windows'
