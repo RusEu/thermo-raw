@@ -133,11 +133,24 @@ def convert_raw_to_mzml(raw_path: Path, output_dir: Path) -> Path:
     except subprocess.TimeoutExpired:
         raise ConversionError("Conversion timed out after 10 minutes")
     except FileNotFoundError as e:
-        if sys.platform != 'win32' and "mono" in str(e).lower():
+        if sys.platform != 'win32':
+            # Show which mono paths were checked
+            mono_paths_checked = [
+                "/opt/homebrew/bin/mono",
+                "/usr/local/bin/mono",
+                "/usr/bin/mono",
+                "/Library/Frameworks/Mono.framework/Versions/Current/Commands/mono",
+            ]
+            paths_status = "\n".join(
+                f"  {'✓' if os.path.isfile(p) else '✗'} {p}"
+                for p in mono_paths_checked
+            )
             raise ConversionError(
-                "Mono runtime not found. Install mono to convert .raw files:\n"
-                "  macOS: brew install mono\n"
-                "  Linux: apt install mono-complete"
+                f"Mono runtime not found. Install mono to convert .raw files:\n"
+                f"  macOS: brew install mono\n"
+                f"  Linux: apt install mono-complete\n\n"
+                f"Checked paths:\n{paths_status}\n\n"
+                f"Command attempted: {' '.join(cmd)}"
             )
         raise ConversionError(
             "ThermoRawFileParser not found. "
