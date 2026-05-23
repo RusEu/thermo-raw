@@ -263,6 +263,10 @@ class CompoundInput(BaseModel):
     name: str
     mz: float
     rt: float
+    # Optional per-compound datapoint window; overrides the request-level one.
+    dp_range_seconds: Optional[float] = None
+    dp_start: Optional[float] = None
+    dp_end: Optional[float] = None
 
 
 class CompoundResult(BaseModel):
@@ -300,6 +304,20 @@ class BulkSNRResponse(BaseModel):
     rt_window: float
 
 
+def _resolve_compound_window(
+    compound: CompoundInput, request: BulkSNRRequest
+) -> Optional[tuple[float, float]]:
+    """Datapoint window for a compound: its own spec wins entirely, otherwise
+    fall back to the request-level (default) spec."""
+    if compound.dp_start is not None and compound.dp_end is not None:
+        return _datapoint_window(compound.rt, None, compound.dp_start, compound.dp_end)
+    if compound.dp_range_seconds is not None:
+        return _datapoint_window(compound.rt, compound.dp_range_seconds, None, None)
+    return _datapoint_window(
+        compound.rt, request.dp_range_seconds, request.dp_start, request.dp_end
+    )
+
+
 @router.post("/{file_id}/bulk-snr", response_model=BulkSNRResponse)
 def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
     """
@@ -320,9 +338,7 @@ def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
 
     for compound in request.compounds:
         # Full-scan datapoint count is independent of the SNR calc.
-        window = _datapoint_window(
-            compound.rt, request.dp_range_seconds, request.dp_start, request.dp_end
-        )
+        window = _resolve_compound_window(compound, request)
         dp_count = None
         dp_start = dp_end = None
         if window is not None:
@@ -382,9 +398,7 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
     results = []
 
     for compound in request.compounds:
-        window = _datapoint_window(
-            compound.rt, request.dp_range_seconds, request.dp_start, request.dp_end
-        )
+        window = _resolve_compound_window(compound, request)
         dp = {"datapoint_count": None, "dp_rt_start": None, "dp_rt_end": None}
         if window is not None:
             dp = {
@@ -436,10 +450,7 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
 
     # Build CSV content
     headers = ["name", "mz", "rt", "snr", "signal", "noise", "apex_rt", "actual_mz"]
-    dp_requested = (
-        (request.dp_start is not None and request.dp_end is not None)
-        or (request.dp_range_seconds is not None and request.dp_range_seconds > 0)
-    )
+    dp_requested = any(r.get("datapoint_count") is not None for r in results)
     if dp_requested:
         headers += ["full_scan_datapoints", "dp_rt_start_min", "dp_rt_end_min"]
     if trailer_data is not None:

@@ -273,7 +273,7 @@ export const api = {
 
   calculateBulkSnr: async (
     fileId: string,
-    compounds: Array<{ name: string; mz: number; rt: number }>,
+    compounds: Array<{ name: string; mz: number; rt: number } & Partial<DatapointParams>>,
     ppm: number = 5,
     rtWindow: number = 2,
     dp?: DatapointParams
@@ -306,7 +306,7 @@ export const api = {
 
   exportBulkSnrCsv: async (
     fileId: string,
-    compounds: Array<{ name: string; mz: number; rt: number }>,
+    compounds: Array<{ name: string; mz: number; rt: number } & Partial<DatapointParams>>,
     ppm: number = 5,
     rtWindow: number = 2,
     dp?: DatapointParams

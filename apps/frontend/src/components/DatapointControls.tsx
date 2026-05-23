@@ -30,13 +30,15 @@ export function dpToParams(dp: DpConfig): DatapointParams | undefined {
 export function DatapointControls({
   value,
   onChange,
+  label = 'Datapoints full scan:',
 }: {
   value: DpConfig
   onChange: (c: DpConfig) => void
+  label?: string
 }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-xs text-muted-foreground">Datapoints full scan:</span>
+      <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex overflow-hidden rounded-md border border-input">
         <button
           type="button"

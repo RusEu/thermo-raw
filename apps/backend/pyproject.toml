@@ -1,6 +1,6 @@
 [project]
 name = "thermo-raw"
-version = "0.4.8"
+version = "0.4.9"
 description = "ThermoFisher mzML analytics dashboard"
 requires-python = ">=3.11"
 dependencies = [

@@ -91,6 +91,24 @@ def interpolate_noise(target_mz: float, noise_mz: np.ndarray, noise_intensity: n
     return float(np.interp(target_mz, noise_mz, noise_intensity))
 
 
+def _scan_number_from_id(spec_id: str) -> Optional[int]:
+    """Parse the Thermo scan number from a spectrum id.
+
+    e.g. 'controllerType=0 controllerNumber=1 scan=5681' -> 5681
+    """
+    if not spec_id:
+        return None
+    marker = "scan="
+    idx = spec_id.rfind(marker)
+    if idx == -1:
+        return None
+    tail = spec_id[idx + len(marker):].split()[0]
+    try:
+        return int(tail)
+    except ValueError:
+        return None
+
+
 class MzMLService:
     """Service for processing mzML files."""
 
@@ -297,6 +315,27 @@ class MzMLService:
             if rt is not None and lo <= rt <= hi:
                 count += 1
         return count
+
+    def get_ion_injection_times(self) -> dict[int, float]:
+        """Map Thermo scan number -> ion injection time (ms) from the mzML.
+
+        Reads cvParam MS:1000927, which ThermoRawFileParser writes for every
+        scan. Platform-independent (no .NET), used to fill the value otherwise
+        read from the proprietary .raw trailer.
+        """
+        self._ensure_loaded()
+        result: dict[int, float] = {}
+        for s in self._spectra:
+            scan_no = _scan_number_from_id(s.get("id", ""))
+            if scan_no is None:
+                continue
+            scan_list = s.get("scanList", {}).get("scan", [])
+            if not scan_list:
+                continue
+            iit = scan_list[0].get("ion injection time")
+            if iit is not None:
+                result[scan_no] = float(iit)
+        return result
 
     def get_spectrum_by_rt(self, target_rt: float, ms_level: Optional[int] = None) -> tuple[np.ndarray, np.ndarray, dict]:
         """Get spectrum closest to target RT.

@@ -114,7 +114,8 @@ def _cache_path(raw_path: Path) -> Path:
     stat = raw_path.stat()
     key = f"{raw_path.name}_{stat.st_size}_{int(stat.st_mtime)}"
     h = hashlib.md5(key.encode()).hexdigest()[:12]
-    return get_cache_dir() / f"{raw_path.stem}_trailer_{h}.json"
+    # v2: ion injection time now backfilled from the mzML (busts old caches)
+    return get_cache_dir() / f"{raw_path.stem}_trailer_v2_{h}.json"
 
 
 def extract_trailer(raw_path: Path) -> dict:
@@ -192,6 +193,24 @@ def extract_trailer(raw_path: Path) -> dict:
         )
     finally:
         raw.dispose()
+
+    # Ion injection time is also exported to the mzML (MS:1000927) and read
+    # there platform-independently; prefer it so the value is reliable even if
+    # the .raw trailer read of that one field misbehaves (e.g. Windows .NET).
+    mzml_path = raw_path.with_suffix(".mzML")
+    if mzml_path.exists():
+        try:
+            from .mzml import MzMLService
+            iit_map = MzMLService(mzml_path).get_ion_injection_times()
+            filled = 0
+            for sc in scans:
+                mzml_iit = iit_map.get(sc["scan"])
+                if mzml_iit is not None:
+                    sc["ion_injection_time_ms"] = mzml_iit
+                    filled += 1
+            print(f"[Trailer] Ion injection time from mzML for {filled} scans", flush=True)
+        except Exception as e:
+            print(f"[Trailer] mzML ion-injection backfill failed: {e}", flush=True)
 
     result = {
         "file": raw_path.name,

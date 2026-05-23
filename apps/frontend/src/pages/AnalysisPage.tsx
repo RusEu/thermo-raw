@@ -22,6 +22,10 @@ interface CompoundInput {
   name: string
   mz: number
   rt: number
+  // Optional per-compound datapoint window (overrides the global default)
+  dp_range_seconds?: number
+  dp_start?: number
+  dp_end?: number
 }
 
 interface CompoundResult {
@@ -129,29 +133,46 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
     }
   }
 
-  // Parse CSV text into compounds
+  // Parse CSV/TSV text into compounds. Header-aware: required name,mz,rt and
+  // optional per-compound datapoint window columns (range_s, or start/end).
   const parseCsvText = (text: string): CompoundInput[] => {
-    const lines = text.split('\n').filter(line => line.trim())
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
     if (lines.length === 0) return []
 
-    // Skip header if present
-    const startIndex = lines[0].toLowerCase().includes('name') ||
-                       lines[0].toLowerCase().includes('mz') ? 1 : 0
-    const compounds: CompoundInput[] = []
+    const split = (l: string) => l.split(/[,\t]/).map((p) => p.trim())
+    const headerCols = split(lines[0]).map((c) => c.toLowerCase())
+    const headerKeys = ['name', 'compound', 'mz', 'm/z', 'rt', 'range_s', 'range_seconds', 'range', 'start', 'end']
+    const hasHeader = headerCols.some((c) => headerKeys.includes(c))
 
-    for (let i = startIndex; i < lines.length; i++) {
-      // Support both comma and tab as separators
-      const parts = lines[i].split(/[,\t]/).map(p => p.trim())
-      if (parts.length >= 3) {
-        const name = parts[0]
-        const mz = parseFloat(parts[1])
-        const rt = parseFloat(parts[2])
-        if (!isNaN(mz) && !isNaN(rt)) {
-          compounds.push({ name, mz, rt })
-        }
-      }
+    const find = (...names: string[]) => headerCols.findIndex((c) => names.includes(c))
+    const col = {
+      name: hasHeader && find('name', 'compound') >= 0 ? find('name', 'compound') : 0,
+      mz: hasHeader && find('mz', 'm/z') >= 0 ? find('mz', 'm/z') : 1,
+      rt: hasHeader && find('rt', 'retention', 'rt_min') >= 0 ? find('rt', 'retention', 'rt_min') : 2,
+      range: hasHeader ? find('range_s', 'range_seconds', 'range') : -1,
+      start: hasHeader ? find('start', 'start_min') : -1,
+      end: hasHeader ? find('end', 'end_min') : -1,
     }
 
+    const num = (v: string | undefined) => (v !== undefined && v !== '' ? parseFloat(v) : NaN)
+    const compounds: CompoundInput[] = []
+    for (let i = hasHeader ? 1 : 0; i < lines.length; i++) {
+      const parts = split(lines[i])
+      const mz = num(parts[col.mz])
+      const rt = num(parts[col.rt])
+      if (isNaN(mz) || isNaN(rt)) continue
+      const c: CompoundInput = { name: parts[col.name] ?? `Compound ${i}`, mz, rt }
+      const s = num(parts[col.start])
+      const e = num(parts[col.end])
+      const r = num(parts[col.range])
+      if (col.start >= 0 && col.end >= 0 && !isNaN(s) && !isNaN(e)) {
+        c.dp_start = s
+        c.dp_end = e
+      } else if (col.range >= 0 && !isNaN(r)) {
+        c.dp_range_seconds = r
+      }
+      compounds.push(c)
+    }
     return compounds
   }
 
@@ -537,14 +558,14 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                   <textarea
                     value={pasteText}
                     onChange={(e) => setPasteText(e.target.value)}
-                    placeholder="name, mz, rt&#10;Caffeine, 195.0877, 4.2&#10;Glucose, 203.0532, 1.5&#10;Aspirin, 179.0344, 6.8"
+                    placeholder="name, mz, rt, range_s&#10;Caffeine, 195.0877, 4.2, 30&#10;Glucose, 203.0532, 1.5, 20&#10;Aspirin, 179.0344, 6.8, 45&#10;&#10;# o con start/end por compuesto:&#10;name, mz, rt, start, end&#10;Caffeine, 195.0877, 4.2, 4.0, 4.4"
                     className="w-full h-48 p-3 rounded-lg border border-border bg-background font-mono text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-muted-foreground">
                       {pasteText.split('\n').filter(l => l.trim()).length > 0
-                        ? `${pasteText.split('\n').filter(l => l.trim()).length} lines · comma or tab separated`
-                        : 'Format: name, mz, rt (header row optional)'}
+                        ? `${pasteText.split('\n').filter(l => l.trim()).length} líneas · separado por coma o tab`
+                        : 'name, mz, rt — opcional por compuesto: range_s (segundos) o start,end (minutos). Requiere fila de cabecera.'}
                     </span>
                     <Button
                       onClick={handlePasteCsv}
@@ -606,7 +627,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                       </div>
                       <span className="text-xs font-mono w-12">±{bulkRtWindow.toFixed(1)}</span>
                     </div>
-                    <DatapointControls value={dp} onChange={setDp} />
+                    <DatapointControls value={dp} onChange={setDp} label="Datapoints (por defecto):" />
                     <Button
                       onClick={handleRunBulkAnalysis}
                       disabled={bulkCompounds.length === 0 || bulkSnrMutation.isPending}
@@ -780,6 +801,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                         <th className="text-left px-4 py-2 font-medium text-muted-foreground">Name</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground">m/z</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground">RT (min)</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Ventana DP</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -789,11 +811,18 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                           <td className="px-4 py-2 font-medium">{compound.name}</td>
                           <td className="px-4 py-2 text-right font-mono">{compound.mz.toFixed(4)}</td>
                           <td className="px-4 py-2 text-right font-mono">{compound.rt.toFixed(2)}</td>
+                          <td className="px-4 py-2 text-right font-mono text-xs text-muted-foreground whitespace-nowrap">
+                            {compound.dp_start != null && compound.dp_end != null
+                              ? `${compound.dp_start}–${compound.dp_end} min`
+                              : compound.dp_range_seconds != null
+                                ? `±${compound.dp_range_seconds}s`
+                                : 'por defecto'}
+                          </td>
                         </tr>
                       ))}
                       {bulkCompounds.length > 10 && (
                         <tr className="border-t border-border">
-                          <td colSpan={4} className="px-4 py-2 text-center text-muted-foreground">
+                          <td colSpan={5} className="px-4 py-2 text-center text-muted-foreground">
                             ... and {bulkCompounds.length - 10} more
                           </td>
                         </tr>
