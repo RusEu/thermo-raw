@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 # Use absolute imports for PyInstaller compatibility
-from thermo_raw.api import files, plots
+from thermo_raw.api import files, plots, trailer
 from thermo_raw import __version__
 from thermo_raw.services.updater import check_for_updates, get_platform_info
 
@@ -44,6 +44,7 @@ app.add_middleware(
 # API routes
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(plots.router, prefix="/api/plots", tags=["plots"])
+app.include_router(trailer.router, prefix="/api/trailer", tags=["trailer"])
 
 
 # Health check

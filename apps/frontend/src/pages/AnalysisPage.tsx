@@ -10,6 +10,7 @@ import { Loader, PlotLoader } from '@/components/Loader'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Zap, Upload, Download, FileSpreadsheet, Play, X, Loader2 } from 'lucide-react'
+import { TrailerExtraCard, ItGroups, WindowGroups } from '@/components/TrailerExtra'
 
 interface AnalysisPageProps {
   fileId: string
@@ -68,6 +69,21 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
     onSuccess: (data) => {
       setBulkResults(data.results)
     },
+  })
+
+  // Trailer Extra (.raw) availability for this dataset
+  const { data: trailerAvail } = useQuery({
+    queryKey: ['trailer-available', fileId],
+    queryFn: () => api.getTrailerAvailable(fileId),
+  })
+
+  // Per-compound Trailer Extra at each bulk result's apex (MS1) scan
+  const bulkApexRts = bulkResults?.map((r) => r.apex_rt) ?? []
+  const { data: bulkTrailer } = useQuery({
+    queryKey: ['bulk-trailer', fileId, bulkApexRts],
+    queryFn: () => api.getTrailerAtRts(fileId, bulkApexRts, 1),
+    enabled:
+      !!bulkResults && bulkResults.length > 0 && trailerAvail?.available === true,
   })
 
   // Query for XIC plot (only after calculation)
@@ -418,6 +434,15 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
             </Card>
           )}
 
+          {/* Trailer Extra at the apex scan (read from .raw) */}
+          {snrMutation.data && snrMutation.data.apex_rt > 0 && (
+            <TrailerExtraCard
+              fileId={fileId}
+              rt={snrMutation.data.apex_rt}
+              msLevel={1}
+            />
+          )}
+
           {/* Initial state */}
           {!snrMutation.data && !snrMutation.isPending && (
             <Card>
@@ -605,7 +630,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="rounded-lg border border-border overflow-hidden">
+                <div className="rounded-lg border border-border overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-muted/50">
@@ -616,6 +641,14 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Signal</th>
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Noise</th>
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Apex RT</th>
+                        {trailerAvail?.available && (
+                          <>
+                            <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ion Inj. (ms)</th>
+                            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">IT/ventana (ms)</th>
+                            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ventanas m/z</th>
+                            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Stitched m/z</th>
+                          </>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -647,6 +680,25 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                           <td className="px-4 py-3 text-right font-mono text-muted-foreground">
                             {result.apex_rt.toFixed(2)}
                           </td>
+                          {trailerAvail?.available && (() => {
+                            const t = bulkTrailer?.scans?.[i] ?? null
+                            return (
+                              <>
+                                <td className="px-4 py-3 text-right font-mono text-muted-foreground">
+                                  {t?.ion_injection_time_ms ?? '—'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {t ? <ItGroups groups={t.multi_inject_it_ms} /> : '—'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {t ? <WindowGroups groups={t.multi_inject_windows_mz} /> : '—'}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {t ? <WindowGroups groups={t.stitched_windows_mz} /> : '—'}
+                                </td>
+                              </>
+                            )
+                          })()}
                         </tr>
                       ))}
                     </tbody>

@@ -1,9 +1,8 @@
 services:
   backend:
     build: ./apps/backend
-    platform: linux/amd64
     ports:
-      - "8000:8000"
+      - "8009:8000"
     volumes:
       - ./apps/backend/src:/app/src
       - ./data:/data
@@ -18,6 +17,6 @@ services:
       - ./apps/frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_URL=http://localhost:8000
+      - VITE_API_URL=http://localhost:8009
     depends_on:
       - backend

@@ -46,6 +46,37 @@ export interface UpdateInfo {
   architecture: string
 }
 
+export interface TrailerScan {
+  scan: number
+  rt_min: number
+  ms_level: number
+  filter: string
+  ion_injection_time_ms: number | null
+  multiple_injection: string | null
+  // One group of per-window injection times (ms) per sub-injection
+  multi_inject_it_ms: number[][]
+  // Per sub-injection: list of [low, high] m/z windows
+  multi_inject_windows_mz: number[][][]
+  stitched_windows_mz: number[][][]
+}
+
+export interface TrailerSummary {
+  scans_with_multi_inject: number
+  scans_with_inject_windows: number
+  scans_with_stitched_windows: number
+  injection_modes: Record<string, number>
+}
+
+export interface TrailerData {
+  file: string
+  num_scans: number
+  summary: TrailerSummary
+  total_filtered: number
+  offset: number
+  limit: number
+  scans: TrailerScan[]
+}
+
 async function fetchJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`)
   if (!res.ok) {
@@ -65,6 +96,74 @@ async function fetchJson<T>(path: string): Promise<T> {
 
 export const api = {
   getFiles: () => fetchJson<FileInfo[]>('/api/files'),
+
+  getTrailerAvailable: (fileId: string) =>
+    fetchJson<{ available: boolean; raw_name: string | null }>(
+      `/api/trailer/${fileId}/available`
+    ),
+
+  getTrailer: (
+    fileId: string,
+    opts: { onlyWindows?: boolean; onlyMultiInject?: boolean; limit?: number; offset?: number } = {}
+  ) => {
+    const p = new URLSearchParams({
+      only_windows: String(opts.onlyWindows ?? false),
+      only_multi_inject: String(opts.onlyMultiInject ?? true),
+      limit: String(opts.limit ?? 5000),
+      offset: String(opts.offset ?? 0),
+    })
+    return fetchJson<TrailerData>(`/api/trailer/${fileId}?${p}`)
+  },
+
+  // Trailer Extra for the scan nearest a retention time (e.g. a precursor apex)
+  getTrailerAtRt: (fileId: string, rt: number, msLevel?: number) => {
+    const p = new URLSearchParams({ rt: String(rt) })
+    if (msLevel !== undefined) p.set('ms_level', String(msLevel))
+    return fetchJson<TrailerScan>(`/api/trailer/${fileId}/at-rt?${p}`)
+  },
+
+  // Batch version for bulk analysis: one scan per RT, aligned to input order
+  getTrailerAtRts: async (fileId: string, rts: number[], msLevel?: number) => {
+    const res = await fetch(`${API_URL}/api/trailer/${encodeURIComponent(fileId)}/at-rts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rts, ms_level: msLevel ?? null }),
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json() as Promise<{ scans: (TrailerScan | null)[] }>
+  },
+
+  trailerExportUrl: (
+    fileId: string,
+    format: 'csv' | 'xlsx',
+    opts: { onlyWindows?: boolean; onlyMultiInject?: boolean } = {}
+  ) =>
+    `${API_URL}/api/trailer/${encodeURIComponent(fileId)}/export?format=${format}` +
+    `&only_windows=${opts.onlyWindows ?? false}` +
+    `&only_multi_inject=${opts.onlyMultiInject ?? true}`,
+
+  downloadTrailerExport: async (
+    fileId: string,
+    format: 'csv' | 'xlsx',
+    opts: { onlyWindows?: boolean; onlyMultiInject?: boolean } = {}
+  ) => {
+    const url =
+      `${API_URL}/api/trailer/${encodeURIComponent(fileId)}/export?format=${format}` +
+      `&only_windows=${opts.onlyWindows ?? false}` +
+      `&only_multi_inject=${opts.onlyMultiInject ?? true}`
+    const res = await fetch(url)
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    const blob = await res.blob()
+    const filename = `${fileId.replace(/\.mzML$/i, '')}_trailer.${format}`
+    const objUrl = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = objUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(objUrl)
+  },
 
   getVersion: () => fetchJson<VersionInfo>('/api/version'),
 

@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from ..services.mzml import MzMLService, get_data_dir
 from ..services.converter import convert_raw_to_mzml, ConversionError
+from ..services import trailer as trailer_svc
 
 router = APIRouter()
 
@@ -112,6 +113,11 @@ def get_spectrum(file_id: str, rt: float, ms_level: Optional[int] = None):
     """Get spectrum at retention time."""
     service = get_file_service(file_id)
     mz, intensity, metadata = service.get_spectrum_by_rt(rt, ms_level)
+    # Strip internal numpy noise arrays (not JSON-serializable, not used by client)
+    metadata = {
+        k: v for k, v in metadata.items()
+        if k not in ("noise_mz_array", "noise_intensity_array")
+    }
     return {
         "mz": mz.tolist(),
         "intensity": intensity.tolist(),
@@ -351,11 +357,29 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
                 "actual_mz": compound.mz,
             })
 
+    # If the .raw is present, enrich each compound with Trailer Extra at the
+    # apex (MS1) scan so everything lands in a single CSV.
+    raw_path = trailer_svc.find_raw_for(file_id)
+    trailer_data = None
+    if raw_path is not None:
+        try:
+            trailer_data = trailer_svc.extract_trailer(raw_path)
+        except trailer_svc.TrailerError:
+            trailer_data = None
+
     # Build CSV content
     headers = ["name", "mz", "rt", "snr", "signal", "noise", "apex_rt", "actual_mz"]
+    if trailer_data is not None:
+        headers += [
+            "ion_injection_time_ms",
+            "multiple_injection",
+            "multi_inject_it_ms",
+            "multi_inject_windows_mz",
+            "stitched_windows_mz",
+        ]
     lines = [",".join(headers)]
     for r in results:
-        lines.append(",".join([
+        row = [
             r["name"],
             f"{r['mz']:.4f}",
             f"{r['rt']:.2f}",
@@ -364,7 +388,21 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
             f"{r['noise']:.1f}",
             f"{r['apex_rt']:.3f}",
             f"{r['actual_mz']:.4f}",
-        ]))
+        ]
+        if trailer_data is not None:
+            scan = trailer_svc.nearest_scan(trailer_data, r["apex_rt"], ms_level=1)
+            if scan is not None:
+                iit = scan["ion_injection_time_ms"]
+                row += [
+                    "" if iit is None else f"{iit}",
+                    (scan["multiple_injection"] or "").replace(",", ";"),
+                    trailer_svc.format_it_groups(scan["multi_inject_it_ms"]),
+                    trailer_svc.format_window_groups(scan["multi_inject_windows_mz"]),
+                    trailer_svc.format_window_groups(scan["stitched_windows_mz"]),
+                ]
+            else:
+                row += ["", "", "", "", ""]
+        lines.append(",".join(row))
     csv_content = "\n".join(lines)
 
     # Return as downloadable file
@@ -433,8 +471,9 @@ def upload_file(file: UploadFile = File(...)):
         try:
             final_path = convert_raw_to_mzml(upload_path, data_dir)
             converted_from = filename
-            # Remove the original .raw file after conversion
-            upload_path.unlink()
+            # Keep the original .raw alongside the .mzML: Thermo Trailer Extra
+            # metadata (per-window injection times, multi-inject / stitched
+            # windows) is not exported to mzML and must be read from the .raw.
         except ConversionError as e:
             # Clean up the uploaded file on conversion failure
             upload_path.unlink(missing_ok=True)

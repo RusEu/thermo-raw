@@ -15,6 +15,10 @@ RUN unzip /tmp/ThermoRawFileParser.zip -d /opt/ThermoRawFileParser \
 
 ENV THERMO_RAW_FILE_PARSER=/opt/ThermoRawFileParser/ThermoRawFileParser.exe
 
+# fisher_py reads the Thermo Trailer Extra directly from .raw via pythonnet;
+# force the Mono runtime (no .NET Core in this image).
+ENV PYTHONNET_RUNTIME=mono
+
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
 
