@@ -5,7 +5,23 @@ import zipfile
 import shutil
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_all
+
 block_cipher = None
+
+# fisher_py reads the Thermo Trailer Extra directly from .raw via pythonnet.
+# Its import is lazy, and it ships native .NET DLLs (RawFileReader) as package
+# data, so bundle the package, pythonnet/clr_loader and all their data/binaries.
+dotnet_datas, dotnet_binaries, dotnet_hidden = [], [], []
+for _pkg in ('fisher_py', 'pythonnet', 'clr_loader'):
+    try:
+        _d, _b, _h = collect_all(_pkg)
+        dotnet_datas += _d
+        dotnet_binaries += _b
+        dotnet_hidden += _h
+        print(f"Bundling {_pkg}: {len(_d)} datas, {len(_b)} binaries")
+    except Exception as e:
+        print(f"WARNING: could not collect {_pkg}: {e}")
 
 # Extract ThermoRawFileParser from zip if needed
 parser_zip = Path('vendor/ThermoRawFileParser.zip')
@@ -37,8 +53,8 @@ else:
 a = Analysis(
     ['src/thermo_raw/main.py'],
     pathex=[],
-    binaries=[],
-    datas=static_datas + parser_datas,
+    binaries=dotnet_binaries,
+    datas=static_datas + parser_datas + dotnet_datas,
     hiddenimports=[
         # Uvicorn and its dependencies
         'uvicorn',
@@ -106,7 +122,11 @@ a = Analysis(
         'AppKit',
         'WebKit',
         'PyObjCTools',
-    ],
+        # Trailer Extra (.raw) reader and Excel export
+        'clr',
+        'fisher_py',
+        'openpyxl',
+    ] + dotnet_hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -171,8 +191,8 @@ if sys.platform == 'darwin':
         info_plist={
             'CFBundleName': 'ThermoRaw',
             'CFBundleDisplayName': 'ThermoRaw',
-            'CFBundleVersion': '0.4.6',
-            'CFBundleShortVersionString': '0.4.6',
+            'CFBundleVersion': '0.4.7',
+            'CFBundleShortVersionString': '0.4.7',
             'NSHighResolutionCapable': True,
             'LSMinimumSystemVersion': '10.15',
         },

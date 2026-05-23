@@ -97,10 +97,11 @@ export function TrailerExtraCard({
     queryFn: () => api.getTrailerAvailable(fileId),
   })
 
-  const { data: scan, isLoading } = useQuery({
+  const { data: scan, isLoading, error } = useQuery({
     queryKey: ['trailer-at-rt', fileId, rt, msLevel],
     queryFn: () => api.getTrailerAtRt(fileId, rt, msLevel),
     enabled: avail?.available === true && rt > 0,
+    retry: false,
   })
 
   // No .raw: this metadata simply doesn't exist for the dataset.
@@ -122,6 +123,10 @@ export function TrailerExtraCard({
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Leyendo Trailer Extra…
           </div>
+        ) : error ? (
+          <p className="text-sm text-destructive">
+            {(error as Error).message}
+          </p>
         ) : scan ? (
           <TrailerScanDetails scan={scan} />
         ) : (

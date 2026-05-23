@@ -9,7 +9,9 @@ injection time -- are read directly from the .raw using fisher_py
 """
 import hashlib
 import json
+import os
 import re
+import sys
 import time
 from pathlib import Path
 from typing import Optional
@@ -129,11 +131,25 @@ def extract_trailer(raw_path: Path) -> dict:
         except Exception:
             pass  # fall through and re-extract
 
-    # Import lazily so the module loads without the CLR/Mono runtime.
-    from fisher_py.data.device import Device
-    from fisher_py.raw_file_reader.raw_file_reader_adapter import (
-        RawFileReaderAdapter,
-    )
+    # fisher_py loads pythonnet on import, which needs a .NET runtime: the
+    # bundled Mono on Linux/macOS, .NET Framework on Windows. Pick it before
+    # importing fisher_py (env must be set before pythonnet.load() runs).
+    if "PYTHONNET_RUNTIME" not in os.environ:
+        os.environ["PYTHONNET_RUNTIME"] = "netfx" if sys.platform == "win32" else "mono"
+
+    # Import lazily so the module loads without the CLR/.NET runtime present.
+    try:
+        from fisher_py.data.device import Device
+        from fisher_py.raw_file_reader.raw_file_reader_adapter import (
+            RawFileReaderAdapter,
+        )
+    except Exception as e:  # ImportError or CLR/runtime load failure
+        raise TrailerError(
+            "No se pudo cargar fisher_py / el runtime .NET para leer el "
+            f"Trailer Extra del .raw ({type(e).__name__}: {e}). "
+            "En la app de escritorio requiere .NET; en Windows usa .NET "
+            "Framework."
+        )
 
     raw = RawFileReaderAdapter.file_factory(str(raw_path))
     try:
