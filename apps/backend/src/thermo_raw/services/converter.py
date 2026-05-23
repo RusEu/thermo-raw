@@ -5,6 +5,11 @@ import subprocess
 from pathlib import Path
 
 
+# On Windows, prevent a console window from flashing when the windowed GUI
+# app launches the console-subsystem ThermoRawFileParser.exe subprocess.
+_NO_WINDOW = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
+
 class ConversionError(Exception):
     """Raised when file conversion fails."""
     pass
@@ -123,6 +128,7 @@ def convert_raw_to_mzml(raw_path: Path, output_dir: Path) -> Path:
             capture_output=True,
             text=True,
             timeout=600,  # 10 minute timeout
+            creationflags=_NO_WINDOW,
         )
 
         if result.returncode != 0:
