@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Search, Zap, Upload, Download, FileSpreadsheet, Play, X, Loader2 } from 'lucide-react'
 import { TrailerExtraCard, ItGroups, WindowGroups } from '@/components/TrailerExtra'
+import { DatapointControls, DpConfig, defaultDpConfig, dpToParams } from '@/components/DatapointControls'
 
 interface AnalysisPageProps {
   fileId: string
@@ -32,6 +33,9 @@ interface CompoundResult {
   noise: number
   apex_rt: number
   actual_mz: number
+  datapoint_count?: number | null
+  dp_rt_start?: number | null
+  dp_rt_end?: number | null
 }
 
 export function AnalysisPage({ fileId }: AnalysisPageProps) {
@@ -43,6 +47,9 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
   const [targetRt, setTargetRt] = useState('')
   const [ppmTolerance, setPpmTolerance] = useState(5)
   const [rtWindow, setRtWindow] = useState(2)
+
+  // Full-scan datapoint counting window (shared by both tabs)
+  const [dp, setDp] = useState<DpConfig>(defaultDpConfig)
 
   // Bulk SNR state
   const [bulkCompounds, setBulkCompounds] = useState<CompoundInput[]>([])
@@ -60,12 +67,12 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
   // Mutation for calculating precursor SNR
   const snrMutation = useMutation({
     mutationFn: ({ mz, rt, ppm, rtWin }: { mz: number; rt: number; ppm: number; rtWin: number }) =>
-      api.getPrecursorSnr(fileId, mz, rt, ppm, rtWin),
+      api.getPrecursorSnr(fileId, mz, rt, ppm, rtWin, dpToParams(dp)),
   })
 
   // Mutation for bulk SNR calculation
   const bulkSnrMutation = useMutation({
-    mutationFn: () => api.calculateBulkSnr(fileId, bulkCompounds, bulkPpm, bulkRtWindow),
+    mutationFn: () => api.calculateBulkSnr(fileId, bulkCompounds, bulkPpm, bulkRtWindow, dpToParams(dp)),
     onSuccess: (data) => {
       setBulkResults(data.results)
     },
@@ -85,6 +92,8 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
     enabled:
       !!bulkResults && bulkResults.length > 0 && trailerAvail?.available === true,
   })
+
+  const showDp = (bulkResults ?? []).some((r) => r.datapoint_count != null)
 
   // Query for XIC plot (only after calculation)
   const { data: xicData } = useQuery({
@@ -183,7 +192,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
 
     setIsExporting(true)
     try {
-      await api.exportBulkSnrCsv(fileId, bulkCompounds, bulkPpm, bulkRtWindow)
+      await api.exportBulkSnrCsv(fileId, bulkCompounds, bulkPpm, bulkRtWindow, dpToParams(dp))
     } catch (error) {
       console.error('Export failed:', error)
     } finally {
@@ -213,7 +222,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
   // Precursor S/N filters
   const precursorFilters = (
     <Card className="px-4 py-3">
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4">
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground">m/z:</span>
           <Input
@@ -263,6 +272,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
           </div>
           <span className="text-xs font-mono w-12">±{rtWindow.toFixed(1)}</span>
         </div>
+        <DatapointControls value={dp} onChange={setDp} />
         <Button
           size="sm"
           className="h-7"
@@ -384,6 +394,17 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                     <div className="text-xs text-muted-foreground">Apex Intensity (XIC)</div>
                     <div className="font-mono text-sm">{snrMutation.data.apex_intensity.toExponential(2)}</div>
                   </div>
+                  {snrMutation.data.datapoint_count !== undefined && (
+                    <div>
+                      <div className="text-xs text-muted-foreground">Datapoints full scan</div>
+                      <div className="font-mono text-sm">
+                        {snrMutation.data.datapoint_count}
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          ({snrMutation.data.dp_rt_start}–{snrMutation.data.dp_rt_end} min)
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -558,7 +579,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                     </Button>
                   </div>
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-4">
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Tol:</span>
                       <div className="w-16">
@@ -585,6 +606,7 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                       </div>
                       <span className="text-xs font-mono w-12">±{bulkRtWindow.toFixed(1)}</span>
                     </div>
+                    <DatapointControls value={dp} onChange={setDp} />
                     <Button
                       onClick={handleRunBulkAnalysis}
                       disabled={bulkCompounds.length === 0 || bulkSnrMutation.isPending}
@@ -641,6 +663,9 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Signal</th>
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Noise</th>
                         <th className="text-right px-4 py-3 font-medium text-muted-foreground">Apex RT</th>
+                        {showDp && (
+                          <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Datapoints full scan</th>
+                        )}
                         {trailerAvail?.available && (
                           <>
                             <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ion Inj. (ms)</th>
@@ -680,6 +705,16 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
                           <td className="px-4 py-3 text-right font-mono text-muted-foreground">
                             {result.apex_rt.toFixed(2)}
                           </td>
+                          {showDp && (
+                            <td className="px-4 py-3 text-right font-mono">
+                              {result.datapoint_count ?? '—'}
+                              {result.dp_rt_start != null && result.dp_rt_end != null && (
+                                <span className="ml-1 text-xs text-muted-foreground">
+                                  ({result.dp_rt_start}–{result.dp_rt_end})
+                                </span>
+                              )}
+                            </td>
+                          )}
                           {trailerAvail?.available && (() => {
                             const t = bulkTrailer?.scans?.[i] ?? null
                             return (

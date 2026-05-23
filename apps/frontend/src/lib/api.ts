@@ -94,6 +94,24 @@ async function fetchJson<T>(path: string): Promise<T> {
   return res.json()
 }
 
+// Full-scan datapoint counting: absolute start/end (minutes) take priority,
+// otherwise a range in seconds centered on the compound RT.
+export interface DatapointParams {
+  dp_range_seconds?: number
+  dp_start?: number
+  dp_end?: number
+}
+
+function appendDpParams(params: URLSearchParams, dp?: DatapointParams) {
+  if (!dp) return
+  if (dp.dp_start !== undefined && dp.dp_end !== undefined) {
+    params.set('dp_start', String(dp.dp_start))
+    params.set('dp_end', String(dp.dp_end))
+  } else if (dp.dp_range_seconds !== undefined) {
+    params.set('dp_range_seconds', String(dp.dp_range_seconds))
+  }
+}
+
 export const api = {
   getFiles: () => fetchJson<FileInfo[]>('/api/files'),
 
@@ -220,13 +238,21 @@ export const api = {
     }>>(`/api/files/${fileId}/top-peaks?${params}`)
   },
 
-  getPrecursorSnr: (fileId: string, mz: number, rt: number, ppm: number = 5, rtWindow?: number) => {
+  getPrecursorSnr: (
+    fileId: string,
+    mz: number,
+    rt: number,
+    ppm: number = 5,
+    rtWindow?: number,
+    dp?: DatapointParams
+  ) => {
     const params = new URLSearchParams({
       mz: mz.toString(),
       rt: rt.toString(),
       ppm: ppm.toString(),
     })
     if (rtWindow !== undefined) params.set('rt_window', rtWindow.toString())
+    appendDpParams(params, dp)
     return fetchJson<{
       snr: number
       signal: number
@@ -239,6 +265,9 @@ export const api = {
       mz_tolerance_da: number
       ppm_tolerance: number
       spectrum_metadata: Record<string, unknown> | null
+      datapoint_count?: number
+      dp_rt_start?: number
+      dp_rt_end?: number
     }>(`/api/files/${fileId}/precursor-snr?${params}`)
   },
 
@@ -246,12 +275,13 @@ export const api = {
     fileId: string,
     compounds: Array<{ name: string; mz: number; rt: number }>,
     ppm: number = 5,
-    rtWindow: number = 2
+    rtWindow: number = 2,
+    dp?: DatapointParams
   ) => {
     const res = await fetch(`${API_URL}/api/files/${fileId}/bulk-snr`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compounds, ppm, rt_window: rtWindow }),
+      body: JSON.stringify({ compounds, ppm, rt_window: rtWindow, ...(dp ?? {}) }),
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
     return res.json() as Promise<{
@@ -264,6 +294,9 @@ export const api = {
         noise: number
         apex_rt: number
         actual_mz: number
+        datapoint_count?: number | null
+        dp_rt_start?: number | null
+        dp_rt_end?: number | null
       }>
       file_id: string
       ppm: number
@@ -275,12 +308,13 @@ export const api = {
     fileId: string,
     compounds: Array<{ name: string; mz: number; rt: number }>,
     ppm: number = 5,
-    rtWindow: number = 2
+    rtWindow: number = 2,
+    dp?: DatapointParams
   ) => {
     const res = await fetch(`${API_URL}/api/files/${fileId}/bulk-snr/csv`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ compounds, ppm, rt_window: rtWindow }),
+      body: JSON.stringify({ compounds, ppm, rt_window: rtWindow, ...(dp ?? {}) }),
     })
     if (!res.ok) throw new Error(`API error: ${res.status}`)
 

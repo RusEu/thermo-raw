@@ -176,6 +176,25 @@ def get_top_peaks(
     )
 
 
+def _datapoint_window(
+    center_rt: float,
+    range_seconds: Optional[float],
+    start: Optional[float],
+    end: Optional[float],
+) -> Optional[tuple[float, float]]:
+    """Resolve the RT window (minutes) for the full-scan datapoint count.
+
+    Absolute start/end (minutes) take priority; otherwise range_seconds is
+    centered on center_rt (e.g. 30 s -> center_rt +/- 15 s).
+    """
+    if start is not None and end is not None:
+        return (start, end)
+    if range_seconds is not None and range_seconds > 0:
+        half_min = (range_seconds / 60.0) / 2.0
+        return (center_rt - half_min, center_rt + half_min)
+    return None
+
+
 @router.get("/{file_id}/precursor-snr")
 def get_precursor_snr(
     file_id: str,
@@ -183,6 +202,9 @@ def get_precursor_snr(
     rt: float,
     ppm: float = 5.0,
     rt_window: Optional[float] = None,
+    dp_range_seconds: Optional[float] = None,
+    dp_start: Optional[float] = None,
+    dp_end: Optional[float] = None,
 ):
     """
     Calculate Signal-to-Noise Ratio for a precursor from Orbitrap data.
@@ -221,6 +243,14 @@ def get_precursor_snr(
                 if k not in ("noise_mz_array", "noise_intensity_array")
             }
 
+        # Count full-scan (MS1) datapoints in the requested time window,
+        # centered on the target RT for the range mode.
+        window = _datapoint_window(rt, dp_range_seconds, dp_start, dp_end)
+        if window is not None:
+            result["datapoint_count"] = service.count_datapoints(window[0], window[1], ms_level=1)
+            result["dp_rt_start"] = round(window[0], 4)
+            result["dp_rt_end"] = round(window[1], 4)
+
         return result
     except HTTPException:
         raise
@@ -245,6 +275,9 @@ class CompoundResult(BaseModel):
     noise: float
     apex_rt: float
     actual_mz: float
+    datapoint_count: Optional[int] = None
+    dp_rt_start: Optional[float] = None
+    dp_rt_end: Optional[float] = None
 
 
 class BulkSNRRequest(BaseModel):
@@ -252,6 +285,11 @@ class BulkSNRRequest(BaseModel):
     compounds: list[CompoundInput]
     ppm: float = 5.0
     rt_window: float = 2.0
+    # Full-scan datapoint counting (optional): absolute start/end (minutes)
+    # take priority, else range_seconds centered on each compound's RT.
+    dp_range_seconds: Optional[float] = None
+    dp_start: Optional[float] = None
+    dp_end: Optional[float] = None
 
 
 class BulkSNRResponse(BaseModel):
@@ -281,6 +319,16 @@ def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
     results = []
 
     for compound in request.compounds:
+        # Full-scan datapoint count is independent of the SNR calc.
+        window = _datapoint_window(
+            compound.rt, request.dp_range_seconds, request.dp_start, request.dp_end
+        )
+        dp_count = None
+        dp_start = dp_end = None
+        if window is not None:
+            dp_count = service.count_datapoints(window[0], window[1], ms_level=1)
+            dp_start, dp_end = round(window[0], 4), round(window[1], 4)
+
         try:
             snr_result = service.get_precursor_snr(
                 target_mz=compound.mz,
@@ -297,9 +345,12 @@ def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
                 noise=snr_result["noise"],
                 apex_rt=snr_result["apex_rt"],
                 actual_mz=snr_result["actual_mz"],
+                datapoint_count=dp_count,
+                dp_rt_start=dp_start,
+                dp_rt_end=dp_end,
             ))
-        except Exception as e:
-            # If calculation fails, return zeros
+        except Exception:
+            # If calculation fails, return zeros (keep the datapoint count)
             results.append(CompoundResult(
                 name=compound.name,
                 mz=compound.mz,
@@ -309,6 +360,9 @@ def calculate_bulk_snr(file_id: str, request: BulkSNRRequest):
                 noise=0.0,
                 apex_rt=compound.rt,
                 actual_mz=compound.mz,
+                datapoint_count=dp_count,
+                dp_rt_start=dp_start,
+                dp_rt_end=dp_end,
             ))
 
     return BulkSNRResponse(
@@ -328,6 +382,17 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
     results = []
 
     for compound in request.compounds:
+        window = _datapoint_window(
+            compound.rt, request.dp_range_seconds, request.dp_start, request.dp_end
+        )
+        dp = {"datapoint_count": None, "dp_rt_start": None, "dp_rt_end": None}
+        if window is not None:
+            dp = {
+                "datapoint_count": service.count_datapoints(window[0], window[1], ms_level=1),
+                "dp_rt_start": round(window[0], 4),
+                "dp_rt_end": round(window[1], 4),
+            }
+
         try:
             snr_result = service.get_precursor_snr(
                 target_mz=compound.mz,
@@ -344,6 +409,7 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
                 "noise": snr_result["noise"],
                 "apex_rt": snr_result["apex_rt"],
                 "actual_mz": snr_result["actual_mz"],
+                **dp,
             })
         except Exception:
             results.append({
@@ -355,6 +421,7 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
                 "noise": 0.0,
                 "apex_rt": compound.rt,
                 "actual_mz": compound.mz,
+                **dp,
             })
 
     # If the .raw is present, enrich each compound with Trailer Extra at the
@@ -369,6 +436,12 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
 
     # Build CSV content
     headers = ["name", "mz", "rt", "snr", "signal", "noise", "apex_rt", "actual_mz"]
+    dp_requested = (
+        (request.dp_start is not None and request.dp_end is not None)
+        or (request.dp_range_seconds is not None and request.dp_range_seconds > 0)
+    )
+    if dp_requested:
+        headers += ["full_scan_datapoints", "dp_rt_start_min", "dp_rt_end_min"]
     if trailer_data is not None:
         headers += [
             "ion_injection_time_ms",
@@ -389,6 +462,13 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
             f"{r['apex_rt']:.3f}",
             f"{r['actual_mz']:.4f}",
         ]
+        if dp_requested:
+            dc = r.get("datapoint_count")
+            row += [
+                "" if dc is None else str(dc),
+                "" if r.get("dp_rt_start") is None else f"{r['dp_rt_start']}",
+                "" if r.get("dp_rt_end") is None else f"{r['dp_rt_end']}",
+            ]
         if trailer_data is not None:
             scan = trailer_svc.nearest_scan(trailer_data, r["apex_rt"], ms_level=1)
             if scan is not None:

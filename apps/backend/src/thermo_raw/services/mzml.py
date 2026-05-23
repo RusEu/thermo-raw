@@ -280,6 +280,24 @@ class MzMLService:
         sort_idx = np.argsort(times)
         return times[sort_idx], intensities[sort_idx]
 
+    def count_datapoints(self, rt_start: float, rt_end: float, ms_level: int = 1) -> int:
+        """Count scans of the given MS level acquired within an RT window.
+
+        rt_start/rt_end are in minutes (inclusive). For a full scan use
+        ms_level=1; this is the number of chromatographic data points across
+        the window (e.g. points across a peak).
+        """
+        self._ensure_loaded()
+        lo, hi = (rt_start, rt_end) if rt_start <= rt_end else (rt_end, rt_start)
+        count = 0
+        for s in self._spectra:
+            if ms_level is not None and s.get("ms level") != ms_level:
+                continue
+            rt = self._get_rt(s)
+            if rt is not None and lo <= rt <= hi:
+                count += 1
+        return count
+
     def get_spectrum_by_rt(self, target_rt: float, ms_level: Optional[int] = None) -> tuple[np.ndarray, np.ndarray, dict]:
         """Get spectrum closest to target RT.
 

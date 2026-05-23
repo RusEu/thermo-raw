@@ -191,8 +191,8 @@ if sys.platform == 'darwin':
         info_plist={
             'CFBundleName': 'ThermoRaw',
             'CFBundleDisplayName': 'ThermoRaw',
-            'CFBundleVersion': '0.4.7',
-            'CFBundleShortVersionString': '0.4.7',
+            'CFBundleVersion': '0.4.8',
+            'CFBundleShortVersionString': '0.4.8',
             'NSHighResolutionCapable': True,
             'LSMinimumSystemVersion': '10.15',
         },
