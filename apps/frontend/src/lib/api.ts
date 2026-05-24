@@ -115,6 +115,14 @@ function appendDpParams(params: URLSearchParams, dp?: DatapointParams) {
 export const api = {
   getFiles: () => fetchJson<FileInfo[]>('/api/files'),
 
+  deleteFile: async (fileId: string) => {
+    const res = await fetch(`${API_URL}/api/files/${encodeURIComponent(fileId)}`, {
+      method: 'DELETE',
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json() as Promise<{ deleted: string[] }>
+  },
+
   getTrailerAvailable: (fileId: string) =>
     fetchJson<{ available: boolean; raw_name: string | null }>(
       `/api/trailer/${fileId}/available`

@@ -65,6 +65,39 @@ def list_files():
     return files
 
 
+@router.delete("/{file_id}")
+def delete_file(file_id: str):
+    """Delete a dataset: the .mzML, its associated .raw, and cached files."""
+    data_dir = get_data_dir()
+    mzml_path = data_dir / file_id
+    if not mzml_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    stem = Path(file_id).stem
+    removed = []
+
+    mzml_path.unlink()
+    removed.append(file_id)
+
+    # Associated .raw (same stem)
+    for raw in data_dir.glob("*.[rR][aA][wW]"):
+        if raw.stem == stem:
+            raw.unlink()
+            removed.append(raw.name)
+
+    # Cached parsed/trailer files for this dataset
+    cache_dir = data_dir / ".cache"
+    if cache_dir.exists():
+        for c in cache_dir.iterdir():
+            if c.is_file() and c.name.startswith(stem + "_"):
+                c.unlink()
+
+    # Drop the in-memory service cache
+    _file_cache.pop(file_id, None)
+
+    return {"deleted": removed}
+
+
 @router.get("/{file_id}/stats", response_model=FileStats)
 def get_file_stats(file_id: str):
     """Get file statistics."""

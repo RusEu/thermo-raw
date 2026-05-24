@@ -48,6 +48,7 @@ function AppContent() {
   const fileFromUrl = searchParams.get('file')
   const [selectedFile, setSelectedFile] = useState<string | null>(fileFromUrl)
   const [isUploadOpen, setIsUploadOpen] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const { data: files, isLoading } = useQuery({
@@ -61,6 +62,25 @@ function AppContent() {
     // Select the newly uploaded file
     setSelectedFile(uploadedFile.id)
     setSearchParams({ file: uploadedFile.id })
+  }
+
+  const handleDeleteFile = async (fileId: string) => {
+    setDeletingId(fileId)
+    try {
+      await api.deleteFile(fileId)
+      await queryClient.invalidateQueries({ queryKey: ['files'] })
+      // If the deleted file was selected, move to the next remaining file
+      if (selectedFile === fileId) {
+        const remaining = (files ?? []).filter((f) => f.id !== fileId)
+        const next = remaining[0]?.id ?? null
+        setSelectedFile(next)
+        setSearchParams(next ? { file: next } : {})
+      }
+    } catch (e) {
+      console.error('Delete failed:', e)
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   // Auto-select first file if none selected
@@ -105,6 +125,8 @@ function AppContent() {
                 onSelect={handleFileSelect}
                 isLoading={isLoading}
                 onUploadClick={() => setIsUploadOpen(true)}
+                onDelete={handleDeleteFile}
+                deletingId={deletingId}
               />
               <SettingsDropdown />
             </div>

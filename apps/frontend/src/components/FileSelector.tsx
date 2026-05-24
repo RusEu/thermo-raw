@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FileInfo } from '@/lib/api'
-import { Upload } from 'lucide-react'
+import { Upload, Trash2, Check, Loader2 } from 'lucide-react'
 
 interface FileSelectorProps {
   files: FileInfo[]
@@ -8,13 +9,24 @@ interface FileSelectorProps {
   onSelect: (fileId: string) => void
   isLoading: boolean
   onUploadClick?: () => void
+  onDelete?: (fileId: string) => void
+  deletingId?: string | null
 }
 
-export function FileSelector({ files, selectedFile, onSelect, isLoading, onUploadClick }: FileSelectorProps) {
+export function FileSelector({
+  files,
+  selectedFile,
+  onSelect,
+  isLoading,
+  onUploadClick,
+  onDelete,
+  deletingId,
+}: FileSelectorProps) {
+  // Two-step inline confirm: first trash click arms, second confirms
+  const [confirmId, setConfirmId] = useState<string | null>(null)
+
   if (isLoading) {
-    return (
-      <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
-    )
+    return <div className="h-9 w-64 animate-pulse rounded-md bg-muted" />
   }
 
   if (files.length === 0) {
@@ -35,11 +47,42 @@ export function FileSelector({ files, selectedFile, onSelect, isLoading, onUploa
         <SelectValue placeholder="Select a file..." />
       </SelectTrigger>
       <SelectContent>
-        {files.map((file) => (
-          <SelectItem key={file.id} value={file.id}>
-            {file.name}
-          </SelectItem>
-        ))}
+        {/* Scrollable file list so the upload button below stays reachable */}
+        <div className="max-h-64 overflow-y-auto">
+          {files.map((file) => (
+            <div key={file.id} className="relative">
+              <SelectItem value={file.id} className="pr-9">
+                {file.name}
+              </SelectItem>
+              {onDelete && (
+                <button
+                  type="button"
+                  title={confirmId === file.id ? 'Click again to confirm delete' : 'Delete file'}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-muted"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    if (confirmId === file.id) {
+                      onDelete(file.id)
+                      setConfirmId(null)
+                    } else {
+                      setConfirmId(file.id)
+                    }
+                  }}
+                >
+                  {deletingId === file.id ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+                  ) : confirmId === file.id ? (
+                    <Check className="h-3.5 w-3.5 text-red-500" />
+                  ) : (
+                    <Trash2 className="h-3.5 w-3.5 text-muted-foreground hover:text-red-500" />
+                  )}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
         {onUploadClick && (
           <>
             <div className="my-1 h-px bg-border" />
