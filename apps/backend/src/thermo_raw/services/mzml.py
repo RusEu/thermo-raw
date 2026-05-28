@@ -316,6 +316,53 @@ class MzMLService:
                 count += 1
         return count
 
+    def extract_in_range(
+        self, target_mz: float, ppm: float, rt_start: float, rt_end: float
+    ) -> list[dict]:
+        """Per-MS1-scan extracted intensity for target_mz +/- ppm in a time range.
+
+        Returns one row per MS1 scan whose RT is inside [rt_start, rt_end] (minutes),
+        with the summed intensity inside the m/z window and the most-intense
+        actual m/z. No peak-finding / apex search.
+        """
+        self._ensure_loaded()
+        lo, hi = (rt_start, rt_end) if rt_start <= rt_end else (rt_end, rt_start)
+        tol_da = ppm_to_da(target_mz, ppm)
+        rows: list[dict] = []
+        for s in self._spectra:
+            if s.get("ms level") != 1:
+                continue
+            rt = self._get_rt(s)
+            if rt is None or rt < lo or rt > hi:
+                continue
+            scan_no = _scan_number_from_id(s.get("id", ""))
+            mz_array = s.get("m/z array", np.array([]))
+            intensity_array = s.get("intensity array", np.array([]))
+            if len(mz_array) == 0:
+                rows.append({
+                    "scan": scan_no, "rt_min": float(rt), "intensity": 0.0,
+                    "actual_mz": None, "n_peaks": 0,
+                })
+                continue
+            mask = np.abs(mz_array - target_mz) <= tol_da
+            n = int(np.sum(mask))
+            if n == 0:
+                rows.append({
+                    "scan": scan_no, "rt_min": float(rt), "intensity": 0.0,
+                    "actual_mz": None, "n_peaks": 0,
+                })
+            else:
+                window_mz = mz_array[mask]
+                window_int = intensity_array[mask]
+                i_max = int(np.argmax(window_int))
+                rows.append({
+                    "scan": scan_no, "rt_min": float(rt),
+                    "intensity": float(np.sum(window_int)),
+                    "actual_mz": float(window_mz[i_max]),
+                    "n_peaks": n,
+                })
+        return rows
+
     def get_ion_injection_times(self) -> dict[int, float]:
         """Map Thermo scan number -> ion injection time (ms) from the mzML.
 

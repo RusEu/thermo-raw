@@ -115,6 +115,61 @@ function appendDpParams(params: URLSearchParams, dp?: DatapointParams) {
 export const api = {
   getFiles: () => fetchJson<FileInfo[]>('/api/files'),
 
+  rangeExtract: async (
+    fileId: string,
+    compounds: Array<{ name: string; mz: number; start?: number; end?: number }>,
+    ppm: number,
+    start?: number,
+    end?: number
+  ) => {
+    const res = await fetch(`${API_URL}/api/files/${encodeURIComponent(fileId)}/range-extract`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compounds, ppm, start, end }),
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    return res.json() as Promise<{
+      rows: Array<{
+        compound: string
+        target_mz: number
+        rt_start: number
+        rt_end: number
+        scan: number | null
+        rt_min: number
+        intensity: number
+        actual_mz: number | null
+        n_peaks: number
+      }>
+      total: number
+      skipped: string[]
+    }>
+  },
+
+  downloadRangeExtractCsv: async (
+    fileId: string,
+    compounds: Array<{ name: string; mz: number; start?: number; end?: number }>,
+    ppm: number,
+    start?: number,
+    end?: number
+  ) => {
+    const res = await fetch(`${API_URL}/api/files/${encodeURIComponent(fileId)}/range-extract/csv`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ compounds, ppm, start, end }),
+    })
+    if (!res.ok) throw new Error(`API error: ${res.status}`)
+    const blob = await res.blob()
+    const filename = `range_extract_${fileId.replace(/\.mzML$/i, '')}.csv`
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  },
+
   deleteFile: async (fileId: string) => {
     const res = await fetch(`${API_URL}/api/files/${encodeURIComponent(fileId)}`, {
       method: 'DELETE',

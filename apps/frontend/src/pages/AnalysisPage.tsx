@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Search, Zap, Upload, Download, FileSpreadsheet, Play, X, Loader2 } from 'lucide-react'
 import { TrailerExtraCard, ItGroups, WindowGroups } from '@/components/TrailerExtra'
 import { DatapointControls, DpConfig, defaultDpConfig, dpToParams } from '@/components/DatapointControls'
+import { RangeExtractTab } from '@/pages/RangeExtractTab'
 
 interface AnalysisPageProps {
   fileId: string
@@ -44,7 +45,7 @@ interface CompoundResult {
 
 export function AnalysisPage({ fileId }: AnalysisPageProps) {
   const { theme } = useTheme()
-  const [activeTab, setActiveTab] = useState<'precursor-snr' | 'bulk-snr'>('precursor-snr')
+  const [activeTab, setActiveTab] = useState<'precursor-snr' | 'bulk-snr' | 'range-extract'>('precursor-snr')
 
   // Precursor SNR state
   const [targetMz, setTargetMz] = useState('')
@@ -314,10 +315,11 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
   )
 
   return (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'precursor-snr' | 'bulk-snr')}>
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'precursor-snr' | 'bulk-snr' | 'range-extract')}>
       <TabsList className="w-full justify-start mb-4">
         <TabsTrigger value="precursor-snr">Precursor S/N</TabsTrigger>
         <TabsTrigger value="bulk-snr">Bulk S/N</TabsTrigger>
+        <TabsTrigger value="range-extract">Range Extract</TabsTrigger>
       </TabsList>
 
       {/* Filters bar */}
@@ -856,6 +858,10 @@ export function AnalysisPage({ fileId }: AnalysisPageProps) {
             </Card>
           )}
         </div>
+      </TabsContent>
+
+      <TabsContent value="range-extract" className="mt-0">
+        <RangeExtractTab fileId={fileId} />
       </TabsContent>
     </Tabs>
   )

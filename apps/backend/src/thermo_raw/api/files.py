@@ -538,6 +538,91 @@ def export_bulk_snr_csv(file_id: str, request: BulkSNRRequest):
     )
 
 
+class RangeCompound(BaseModel):
+    """One compound for the time-range extraction (no RT/apex needed)."""
+    name: str
+    mz: float
+    # Optional per-compound range; overrides the request-level default.
+    start: Optional[float] = None
+    end: Optional[float] = None
+
+
+class RangeExtractRequest(BaseModel):
+    compounds: list[RangeCompound]
+    ppm: float = 5.0
+    # Default range used for compounds that don't specify their own.
+    start: Optional[float] = None
+    end: Optional[float] = None
+
+
+def _resolve_range(c: RangeCompound, req: RangeExtractRequest) -> Optional[tuple[float, float]]:
+    s = c.start if c.start is not None else req.start
+    e = c.end if c.end is not None else req.end
+    if s is None or e is None:
+        return None
+    return (s, e)
+
+
+@router.post("/{file_id}/range-extract")
+def range_extract(file_id: str, request: RangeExtractRequest):
+    """Per-MS1-scan extracted intensity for each compound in a fixed time range.
+
+    Unlike bulk-snr, no apex search: every MS1 scan inside the range becomes a
+    row. Per-compound start/end (minutes) override the request-level defaults.
+    """
+    service = get_file_service(file_id)
+    rows: list[dict] = []
+    skipped: list[str] = []
+    for c in request.compounds:
+        window = _resolve_range(c, request)
+        if window is None:
+            skipped.append(c.name)
+            continue
+        for r in service.extract_in_range(c.mz, request.ppm, window[0], window[1]):
+            rows.append({
+                "compound": c.name,
+                "target_mz": c.mz,
+                "rt_start": round(window[0], 4),
+                "rt_end": round(window[1], 4),
+                **r,
+            })
+    return {"rows": rows, "total": len(rows), "skipped": skipped}
+
+
+@router.post("/{file_id}/range-extract/csv")
+def export_range_extract_csv(file_id: str, request: RangeExtractRequest):
+    """Same as /range-extract but returned as a downloadable CSV."""
+    service = get_file_service(file_id)
+    headers = [
+        "compound", "target_mz", "rt_start", "rt_end",
+        "scan", "rt_min", "intensity", "actual_mz", "n_peaks",
+    ]
+    lines = [",".join(headers)]
+    for c in request.compounds:
+        window = _resolve_range(c, request)
+        if window is None:
+            continue
+        for r in service.extract_in_range(c.mz, request.ppm, window[0], window[1]):
+            lines.append(",".join([
+                c.name,
+                f"{c.mz:.4f}",
+                f"{window[0]:.4f}",
+                f"{window[1]:.4f}",
+                "" if r["scan"] is None else str(r["scan"]),
+                f"{r['rt_min']:.5f}",
+                f"{r['intensity']:.4e}",
+                "" if r["actual_mz"] is None else f"{r['actual_mz']:.4f}",
+                str(r["n_peaks"]),
+            ]))
+    csv_content = "\n".join(lines)
+    filename = f"range_extract_{file_id.replace('.mzML', '')}.csv"
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
 class UploadResponse(BaseModel):
     id: str
     name: str
